@@ -93,14 +93,6 @@ export default function MerchantInput() {
         >
           <Ionicons name="close" size={28} color="#000" />
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.requestButton}
-          onPress={handleRequestPayment}
-        >
-          <Ionicons name="phone-portrait" size={20} color="#000" />
-          <Text style={styles.requestButtonText}>Request Payment</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -163,21 +155,20 @@ export default function MerchantInput() {
           </View>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleClear}>
-              <Text style={styles.actionButtonText}>Clear</Text>
+            <TouchableOpacity 
+              style={styles.clearButton} 
+              onPress={handleClear}
+            >
+              <Text style={styles.clearButtonText}>Clear</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>NFC Info</Text>
+            <TouchableOpacity 
+              style={[styles.continueButton, !amount && styles.continueButtonDisabled]} 
+              onPress={handleContinue}
+              disabled={!amount}
+            >
+              <Text style={styles.continueButtonText}>Continue</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity 
-            style={[styles.continueButton, !amount && styles.continueButtonDisabled]} 
-            onPress={handleContinue}
-            disabled={!amount}
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
