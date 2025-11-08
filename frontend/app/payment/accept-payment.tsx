@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
+  StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useItemStore } from '../../src/store/itemStore';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AcceptPayment() {
   const router = useRouter();
