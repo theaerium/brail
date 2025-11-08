@@ -26,10 +26,19 @@ export default function AcceptPayment() {
     merchantName: string;
   }>();
   
-  const { items } = useItemStore();
+  const { items, updateItem } = useItemStore();
   const { user } = useAuthStore();
   const [animationComplete, setAnimationComplete] = useState(false);
   const [transactionDenied, setTransactionDenied] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  
+  // Authentication states
+  const [authStep, setAuthStep] = useState<'none' | 'customer' | 'merchant' | 'complete'>('none');
+  const [customerPin, setCustomerPin] = useState('');
+  const [merchantPin, setMerchantPin] = useState('');
+  const [customerAuthed, setCustomerAuthed] = useState(false);
+  const [merchantAuthed, setMerchantAuthed] = useState(false);
+  const [processing, setProcessing] = useState(false);
   
   // Animation values
   const pulseAnim = useRef(new Animated.Value(1)).current;
