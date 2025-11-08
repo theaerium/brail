@@ -87,7 +87,8 @@ export default function MerchantInput() {
   const displayAmount = formatAmount(amount || '0');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -173,7 +174,7 @@ export default function MerchantInput() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
