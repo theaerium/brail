@@ -245,11 +245,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  addButton: {
+  depositButton: {
     flexDirection: 'row',
     backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 24,
     alignItems: 'center',
     marginTop: 24,
@@ -258,6 +258,21 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  manualAddButton: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F0F0',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  manualAddButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
     fontWeight: '600',
   },
   floatingButton: {
