@@ -73,6 +73,18 @@ class ItemUpdate(BaseModel):
     share_percentage: Optional[float] = None
     owner_id: Optional[str] = None
 
+class DepositAnalysisRequest(BaseModel):
+    image_base64: str  # Base64 encoded image with or without data:image prefix
+
+class DepositAnalysisResponse(BaseModel):
+    name: str
+    description: str
+    category: str
+    subcategory: str
+    brand: str
+    estimated_value: float
+    condition: str = "good"
+
 
 # ============ Trade Models ============
 class TradeItem(BaseModel):
