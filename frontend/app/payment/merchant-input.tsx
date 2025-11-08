@@ -55,15 +55,16 @@ export default function MerchantInput() {
   };
 
   const handleContinue = () => {
-    const amountNum = parseFloat(amount || '0');
+    const cleanAmount = amount.replace(/,/g, '');
+    const amountNum = parseFloat(cleanAmount || '0');
     
     if (amountNum <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
       return;
     }
 
-    if (amountNum > 10000) {
-      Alert.alert('Amount Too Large', 'Please enter an amount less than $10,000');
+    if (amountNum > 999999) {
+      Alert.alert('Amount Too Large', 'Please enter an amount less than $999,999');
       return;
     }
 
@@ -73,7 +74,15 @@ export default function MerchantInput() {
     });
   };
 
-  const displayAmount = amount || '0';
+  const handleRequestPayment = () => {
+    // Skip amount entry, go directly to NFC waiting screen
+    router.push({
+      pathname: '/payment/accept-payment',
+      params: { amount: '0.00', merchantId: user!.user_id, merchantName: user!.username }
+    });
+  };
+
+  const displayAmount = formatAmount(amount || '0');
 
   return (
     <View style={styles.container}>
