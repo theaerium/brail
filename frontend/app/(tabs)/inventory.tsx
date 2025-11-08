@@ -111,14 +111,21 @@ export default function Inventory() {
       <Ionicons name="pricetags-outline" size={80} color="#CCC" />
       <Text style={styles.emptyTitle}>No Items Yet</Text>
       <Text style={styles.emptyText}>
-        Add your first item to start trading
+        Deposit your first item to start trading
       </Text>
       <TouchableOpacity
-        style={styles.addButton}
+        style={styles.depositButton}
+        onPress={() => router.push('/deposit/capture')}
+      >
+        <Ionicons name="sparkles" size={24} color="#FFFFFF" />
+        <Text style={styles.addButtonText}>Deposit Item (AI)</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.manualAddButton}
         onPress={() => router.push('/items/add')}
       >
-        <Ionicons name="add" size={24} color="#FFFFFF" />
-        <Text style={styles.addButtonText}>Add Item</Text>
+        <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+        <Text style={styles.manualAddButtonText}>Add Manually</Text>
       </TouchableOpacity>
     </View>
   );
