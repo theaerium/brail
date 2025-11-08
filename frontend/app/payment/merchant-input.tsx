@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 10,
@@ -191,42 +191,28 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
-  requestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    gap: 6,
-  },
-  requestButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000',
-  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'space-between',
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   topSection: {
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: 10,
   },
   label: {
     fontSize: 18,
     fontWeight: '400',
     color: '#000',
-    marginBottom: 40,
+    marginBottom: 30,
     textAlign: 'center',
   },
   amountDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 60,
+    marginBottom: 40,
   },
   currency: {
     fontSize: 72,
@@ -240,13 +226,13 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   keypad: {
-    gap: 16,
+    gap: 12,
   },
   keypadRow: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     gap: 40,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   key: {
     width: 80,
@@ -261,26 +247,27 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    gap: 20,
-    marginTop: 8,
-    marginBottom: 20,
+    gap: 12,
+    marginTop: 20,
   },
-  actionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+  clearButton: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '400',
+  clearButtonText: {
+    fontSize: 18,
+    fontWeight: '500',
     color: '#000',
   },
   continueButton: {
+    flex: 2,
     backgroundColor: '#000',
-    paddingVertical: 18,
+    paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
-    marginTop: 8,
   },
   continueButtonDisabled: {
     backgroundColor: '#666',
