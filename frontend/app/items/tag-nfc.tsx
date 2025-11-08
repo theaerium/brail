@@ -13,7 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useItemStore } from '../../src/store/itemStore';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function TagNFC() {
+function TagNFC() {
   const router = useRouter();
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { items } = useItemStore();
