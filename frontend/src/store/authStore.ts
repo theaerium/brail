@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import axios from 'axios';
+import React from 'react';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
