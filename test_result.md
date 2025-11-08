@@ -236,9 +236,55 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ User trades retrieval working - returns trades where user is either payer or payee"
+  
+  - task: "AI Deposit Analysis API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "🆕 NEW FEATURE: AI-powered item analysis endpoint. Uses GPT-4o via Emergent LLM key to analyze item photos and extract: name, description, category, subcategory, brand, condition, and estimated value. Needs testing with real images."
 
 frontend:
-  # Frontend testing not performed as per instructions
+  - task: "AI Deposit Capture Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/deposit/capture.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "🆕 NEW FEATURE: Photo capture screen for AI deposit. Allows camera or gallery selection with change photo option. Routes to confirmation screen."
+  
+  - task: "AI Deposit Confirm Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/deposit/confirm.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "🆕 NEW FEATURE: AI analysis confirmation screen. Shows item details extracted by AI with option to retake photo or deposit item. Includes loading state during AI analysis."
+  
+  - task: "Updated Inventory UI for Deposit"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/inventory.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Updated empty state and floating button to use AI deposit instead of manual add. Provides both AI (sparkles icon) and manual add options."
 
 metadata:
   created_by: "testing_agent"
