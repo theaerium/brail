@@ -3,10 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -18,10 +15,30 @@ export default function MerchantInput() {
   const { user } = useAuthStore();
   const [amount, setAmount] = useState('');
 
-  const handleContinue = () => {
-    const amountNum = parseFloat(amount);
+  const handleNumberPress = (num: string) => {
+    if (amount.length >= 10) return; // Limit input length
     
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (num === '.' && amount.includes('.')) return; // Only one decimal
+    
+    if (num === '.' && amount === '') {
+      setAmount('0.');
+    } else {
+      setAmount(amount + num);
+    }
+  };
+
+  const handleDelete = () => {
+    setAmount(amount.slice(0, -1));
+  };
+
+  const handleClear = () => {
+    setAmount('');
+  };
+
+  const handleContinue = () => {
+    const amountNum = parseFloat(amount || '0');
+    
+    if (amountNum <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
       return;
     }
@@ -37,11 +54,10 @@ export default function MerchantInput() {
     });
   };
 
+  const displayAmount = amount || '0';
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -53,44 +69,85 @@ export default function MerchantInput() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.merchantInfo}>
-          <Ionicons name="storefront" size={48} color="#007AFF" />
-          <Text style={styles.merchantName}>{user?.username}</Text>
-          <Text style={styles.merchantLabel}>Merchant</Text>
-        </View>
-
-        <View style={styles.amountSection}>
-          <Text style={styles.label}>Transaction Amount</Text>
-          <View style={styles.inputContainer}>
-            <Text style={styles.currency}>$</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-              autoFocus
-            />
-          </View>
+        <View style={styles.amountDisplay}>
+          <Text style={styles.currency}>$</Text>
+          <Text style={styles.amountText}>{displayAmount}</Text>
         </View>
 
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color="#007AFF" />
+          <Ionicons name="information-circle" size={18} color="#007AFF" />
           <Text style={styles.infoText}>
-            Customer will tap their phone or NFC card to pay with their items
+            Customer will tap their phone or NFC card to pay
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.continueButton, !amount && styles.continueButtonDisabled]}
-          onPress={handleContinue}
-          disabled={!amount}
-        >
-          <Text style={styles.continueButtonText}>Continue</Text>
-          <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.keypad}>
+          <View style={styles.keypadRow}>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('1')}>
+              <Text style={styles.keyText}>1</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('2')}>
+              <Text style={styles.keyText}>2</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('3')}>
+              <Text style={styles.keyText}>3</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.keypadRow}>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('4')}>
+              <Text style={styles.keyText}>4</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('5')}>
+              <Text style={styles.keyText}>5</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('6')}>
+              <Text style={styles.keyText}>6</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.keypadRow}>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('7')}>
+              <Text style={styles.keyText}>7</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('8')}>
+              <Text style={styles.keyText}>8</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('9')}>
+              <Text style={styles.keyText}>9</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.keypadRow}>
+            <TouchableOpacity style={styles.key} onPress={handleClear}>
+              <Text style={styles.keyTextSmall}>Clear</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('0')}>
+              <Text style={styles.keyText}>0</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('.')}>
+              <Text style={styles.keyText}>.</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.keypadRow}>
+            <TouchableOpacity 
+              style={[styles.key, styles.deleteKey]} 
+              onPress={handleDelete}
+            >
+              <Ionicons name="backspace" size={28} color="#FF3B30" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.key, styles.continueKey, !amount && styles.continueKeyDisabled]} 
+              onPress={handleContinue}
+              disabled={!amount}
+            >
+              <Text style={styles.continueKeyText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
