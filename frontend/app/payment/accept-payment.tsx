@@ -23,93 +23,223 @@ export default function AcceptPayment() {
   }>();
   
   const { items } = useItemStore();
-  const [waiting, setWaiting] = useState(true);
-  const [simulatingRead, setSimulatingRead] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
+  
+  // Animation values
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ring1Anim = useRef(new Animated.Value(1)).current;
+  const ring2Anim = useRef(new Animated.Value(1)).current;
+  const ring3Anim = useRef(new Animated.Value(1)).current;
+  const checkmarkScale = useRef(new Animated.Value(0)).current;
+  const splashScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // In real device, NFC reader would be active here
-    // For now, we'll simulate the wait
+    // Start pulsing animation
+    const pulsing = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const ring1Animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ring1Anim, {
+          toValue: 1.3,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ring1Anim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const ring2Animation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(500),
+        Animated.timing(ring2Anim, {
+          toValue: 1.3,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ring2Anim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const ring3Animation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1000),
+        Animated.timing(ring3Anim, {
+          toValue: 1.3,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ring3Anim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulsing.start();
+    ring1Animation.start();
+    ring2Animation.start();
+    ring3Animation.start();
+
+    // After 3 seconds, show checkmark animation
+    const timer = setTimeout(() => {
+      pulsing.stop();
+      ring1Animation.stop();
+      ring2Animation.stop();
+      ring3Animation.stop();
+
+      // Animate checkmark and splash
+      Animated.parallel([
+        Animated.spring(checkmarkScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(splashScale, {
+            toValue: 1.5,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(splashScale, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        setAnimationComplete(true);
+        // Navigate after animation completes
+        setTimeout(() => {
+          router.push({
+            pathname: '/payment/customer-select',
+            params: {
+              amount,
+              merchantId,
+              merchantName,
+            }
+          });
+        }, 1000);
+      });
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      pulsing.stop();
+      ring1Animation.stop();
+      ring2Animation.stop();
+      ring3Animation.stop();
+    };
   }, []);
 
-  const simulateCustomerTap = () => {
-    setSimulatingRead(true);
-    
-    // Simulate NFC read delay
-    setTimeout(() => {
-      setSimulatingRead(false);
-      
-      // Navigate to customer item selection
-      router.push({
-        pathname: '/payment/customer-select',
-        params: {
-          amount,
-          merchantId,
-          merchantName,
-        }
-      });
-    }, 1500);
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Accept Payment</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
+      
+      <View style={styles.amountSection}>
+        <Text style={styles.amountText}>${amount}</Text>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.amountDisplay}>
-          <Text style={styles.amountLabel}>Payment Amount</Text>
-          <Text style={styles.amountValue}>${amount}</Text>
-        </View>
-
-        {!simulatingRead ? (
-          <>
-            <View style={styles.nfcIcon}>
-              <Ionicons name="phone-portrait" size={120} color="#007AFF" />
-              <View style={styles.pulse} />
-            </View>
-
-            <Text style={styles.waitingText}>Waiting for customer...</Text>
-            <Text style={styles.instructionText}>
-              Ask customer to tap their phone or NFC card
-            </Text>
-
-            <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={20} color="#007AFF" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>How it works:</Text>
-                <Text style={styles.infoText}>
-                  1. Customer taps their phone/card{' \n'}
-                  2. Their items load automatically{' \n'}
-                  3. They select items to pay with{' \n'}
-                  4. Both parties confirm the trade
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.simulateButton}
-              onPress={simulateCustomerTap}
-            >
-              <Ionicons name="play-circle" size={24} color="#FFFFFF" />
-              <Text style={styles.simulateButtonText}>Simulate Customer Tap</Text>
-            </TouchableOpacity>
-          </>
+      <View style={styles.centerContent}>
+        {!animationComplete ? (
+          <View style={styles.animationContainer}>
+            {/* Pulsing Rings */}
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                {
+                  transform: [{ scale: ring1Anim }],
+                  opacity: ring1Anim.interpolate({
+                    inputRange: [1, 1.3],
+                    outputRange: [0.6, 0],
+                  }),
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                {
+                  transform: [{ scale: ring2Anim }],
+                  opacity: ring2Anim.interpolate({
+                    inputRange: [1, 1.3],
+                    outputRange: [0.6, 0],
+                  }),
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                {
+                  transform: [{ scale: ring3Anim }],
+                  opacity: ring3Anim.interpolate({
+                    inputRange: [1, 1.3],
+                    outputRange: [0.6, 0],
+                  }),
+                },
+              ]}
+            />
+            
+            {/* Center Ring */}
+            <Animated.View
+              style={[
+                styles.centerRing,
+                {
+                  transform: [{ scale: pulseAnim }],
+                },
+              ]}
+            />
+          </View>
         ) : (
-          <View style={styles.readingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.readingText}>Reading NFC...</Text>
-            <Text style={styles.readingHint}>Loading customer items</Text>
+          <View style={styles.animationContainer}>
+            {/* Splash effect */}
+            <Animated.View
+              style={[
+                styles.splash,
+                {
+                  transform: [{ scale: splashScale }],
+                },
+              ]}
+            />
+            
+            {/* Checkmark */}
+            <Animated.View
+              style={[
+                styles.checkmarkContainer,
+                {
+                  transform: [{ scale: checkmarkScale }],
+                },
+              ]}
+            >
+              <Ionicons name="checkmark" size={100} color="#000" />
+            </Animated.View>
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
