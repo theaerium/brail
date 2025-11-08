@@ -192,19 +192,33 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   backButton: {
     padding: 8,
+  },
+  requestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    gap: 6,
+  },
+  requestButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'space-between',
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   topSection: {
     alignItems: 'center',
