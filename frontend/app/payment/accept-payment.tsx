@@ -48,6 +48,119 @@ export default function AcceptPayment() {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const splashScale = useRef(new Animated.Value(0)).current;
 
+  // Handle biometric authentication
+  const handleBiometricAuth = async (isCustomer: boolean) => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        // No biometric hardware, user must use PIN
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: `Authenticate as ${isCustomer ? 'Customer' : 'Merchant'}`,
+        fallbackLabel: 'Use PIN',
+        cancelLabel: 'Cancel',
+      });
+
+      if (result.success) {
+        if (isCustomer) {
+          setCustomerAuthed(true);
+          // Auto-trigger merchant auth
+          setTimeout(() => {
+            setAuthStep('merchant');
+            handleBiometricAuth(false);
+          }, 500);
+        } else {
+          setMerchantAuthed(true);
+          // Complete transaction
+          completeTrade('biometric', 'biometric');
+        }
+      }
+    } catch (error) {
+      console.error('Biometric auth error:', error);
+    }
+  };
+
+  // Handle PIN submission
+  const handlePinSubmit = async (pin: string, isCustomer: boolean) => {
+    if (pin.length < 4) {
+      Alert.alert('Invalid PIN', 'PIN must be at least 4 digits');
+      return;
+    }
+
+    if (isCustomer) {
+      setCustomerAuthed(true);
+      setCustomerPin(pin);
+      // Auto-trigger merchant auth
+      setTimeout(() => {
+        setAuthStep('merchant');
+        handleBiometricAuth(false);
+      }, 500);
+    } else {
+      setMerchantAuthed(true);
+      setMerchantPin(pin);
+      // Complete transaction
+      completeTrade(customerPin || 'biometric', pin);
+    }
+  };
+
+  // Complete the trade
+  const completeTrade = async (custPin: string, merchPin: string) => {
+    setProcessing(true);
+    setAuthStep('complete');
+
+    try {
+      // Generate signatures
+      const customerSig = await OfflineTradeService.generateSignature(
+        { tradeItems: selectedItems, timestamp: Date.now() },
+        custPin
+      );
+
+      const merchantSig = await OfflineTradeService.generateSignature(
+        { tradeItems: selectedItems, timestamp: Date.now() },
+        merchPin
+      );
+
+      // Record trade offline
+      await OfflineTradeService.recordTrade(
+        user!.user_id,
+        user!.username,
+        merchantId as string,
+        merchantName as string,
+        selectedItems,
+        customerSig,
+        merchantSig
+      );
+
+      // Update item ownership locally
+      for (const item of selectedItems) {
+        await updateItem(item.item_id, {
+          owner_id: merchantId as string,
+          share_percentage: 1.0 - item.share_percentage,
+        });
+      }
+
+      // Show success and navigate
+      setTimeout(() => {
+        Alert.alert(
+          'Trade Complete!',
+          `Successfully traded items worth $${amount}\n\nTrade will sync when online.`,
+          [
+            {
+              text: 'Done',
+              onPress: () => router.replace('/(tabs)/inventory'),
+            },
+          ]
+        );
+      }, 1000);
+    } catch (error) {
+      console.error('Trade error:', error);
+      Alert.alert('Trade Failed', 'Failed to complete trade. Please try again.');
+      setProcessing(false);
+    }
+  };
+
   useEffect(() => {
     // Calculate total value of customer's items
     const amountNum = parseFloat(amount || '0');
