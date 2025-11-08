@@ -16,7 +16,11 @@ export default function MerchantInput() {
   const [amount, setAmount] = useState('');
 
   const handleNumberPress = (num: string) => {
-    if (amount.length >= 10) return; // Limit input length
+    // Remove commas and decimals for length check
+    const cleanAmount = amount.replace(/,/g, '').replace('.', '');
+    
+    // Limit to 6 digits before decimal
+    if (num !== '.' && cleanAmount.length >= 6) return;
     
     if (num === '.' && amount.includes('.')) return; // Only one decimal
     
@@ -25,6 +29,21 @@ export default function MerchantInput() {
     } else {
       setAmount(amount + num);
     }
+  };
+  
+  const formatAmount = (value: string) => {
+    if (!value || value === '0') return '0';
+    
+    // Split by decimal
+    const parts = value.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+    
+    // Add commas to integer part
+    const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    // Return with decimal if exists
+    return decimalPart !== undefined ? `${formatted}.${decimalPart}` : formatted;
   };
 
   const handleDelete = () => {
