@@ -33,9 +33,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="trades"
         options={{
-          title: 'Trades',
+          title: 'Payments',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="swap-horizontal" size={size} color={color} />
+            <Ionicons name="card" size={size} color={color} />
           ),
         }}
       />
