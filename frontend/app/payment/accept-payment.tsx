@@ -287,6 +287,9 @@ export default function AcceptPayment() {
         }
       }
 
+      // Store selected items
+      setSelectedItems(selectedItems);
+
       // Animate checkmark and splash
       Animated.parallel([
         Animated.spring(checkmarkScale, {
@@ -309,20 +312,11 @@ export default function AcceptPayment() {
         ]),
       ]).start(() => {
         setAnimationComplete(true);
-        // Navigate to transaction summary after animation completes
+        // Auto-trigger customer authentication after animation
         setTimeout(() => {
-          router.push({
-            pathname: '/payment/confirm-trade',
-            params: {
-              amount,
-              merchantId,
-              merchantName,
-              customerId: user!.user_id,
-              customerName: user!.username,
-              tradeItems: JSON.stringify(selectedItems),
-            }
-          });
-        }, 1000);
+          setAuthStep('customer');
+          handleBiometricAuth(true);
+        }, 500);
       });
     }, 3000);
 
