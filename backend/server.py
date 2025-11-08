@@ -146,6 +146,107 @@ async def get_user(user_id: str):
     return User(**user)
 
 
+# ============ AI Deposit Analysis Endpoint ============
+@api_router.post("/items/analyze-deposit", response_model=DepositAnalysisResponse)
+async def analyze_item_for_deposit(request: DepositAnalysisRequest):
+    """
+    Analyze an item image using AI (GPT-4 Vision) to extract:
+    - Item name
+    - Description
+    - Category and subcategory
+    - Brand
+    - Estimated market value
+    """
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        
+        # Get API key from environment
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="LLM API key not configured")
+        
+        # Clean base64 string (remove data:image prefix if present)
+        image_base64 = request.image_base64
+        if "base64," in image_base64:
+            image_base64 = image_base64.split("base64,")[1]
+        
+        # Create AI chat instance
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"deposit-{uuid.uuid4()}",
+            system_message="You are an expert item appraiser and identifier. Analyze images of physical items and provide accurate details."
+        ).with_model("openai", "gpt-4o")
+        
+        # Create analysis prompt
+        prompt = """Analyze this item image and provide detailed information in the following format:
+
+NAME: [Clear, concise item name]
+DESCRIPTION: [Detailed 2-3 sentence description]
+CATEGORY: [One of: clothing, shoes, electronics, accessories, furniture, jewelry, sports, tools, books, toys]
+SUBCATEGORY: [Specific type - e.g., for clothing: shirt, pants, jacket, shorts; for shoes: sneakers, boots, sandals; for electronics: phone, tablet, laptop, headphones; for accessories: watch, bag, hat, sunglasses]
+BRAND: [Brand name if visible or identifiable, otherwise "Generic"]
+CONDITION: [One of: new, excellent, good, fair, poor - based on visual appearance]
+VALUE: [Realistic current market value in USD as a number only, e.g., 299.99]
+
+Important guidelines:
+- Be realistic with valuations based on current market prices
+- Consider condition when estimating value
+- If brand is not clearly visible, use "Generic"
+- Choose the most specific category and subcategory that fits
+- Provide accurate, honest assessments"""
+
+        # Create image content
+        image_content = ImageContent(image_base64=image_base64)
+        
+        # Send message with image
+        user_message = UserMessage(
+            text=prompt,
+            file_contents=[image_content]
+        )
+        
+        logger.info("Sending image to AI for analysis...")
+        response_text = await chat.send_message(user_message)
+        logger.info(f"AI Response: {response_text}")
+        
+        # Parse the structured response
+        parsed_data = {}
+        
+        # Extract fields using regex
+        name_match = re.search(r'NAME:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+        desc_match = re.search(r'DESCRIPTION:\s*(.+?)(?:\n(?:CATEGORY|SUBCATEGORY|BRAND|CONDITION|VALUE):|$)', response_text, re.IGNORECASE | re.DOTALL)
+        category_match = re.search(r'CATEGORY:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+        subcategory_match = re.search(r'SUBCATEGORY:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+        brand_match = re.search(r'BRAND:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+        condition_match = re.search(r'CONDITION:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+        value_match = re.search(r'VALUE:\s*\$?([0-9]+\.?[0-9]*)', response_text, re.IGNORECASE)
+        
+        # Assign values with fallbacks
+        parsed_data['name'] = name_match.group(1).strip() if name_match else "Unknown Item"
+        parsed_data['description'] = desc_match.group(1).strip() if desc_match else "No description available"
+        parsed_data['category'] = category_match.group(1).strip().lower() if category_match else "accessories"
+        parsed_data['subcategory'] = subcategory_match.group(1).strip().lower() if subcategory_match else "item"
+        parsed_data['brand'] = brand_match.group(1).strip() if brand_match else "Generic"
+        parsed_data['condition'] = condition_match.group(1).strip().lower() if condition_match else "good"
+        parsed_data['estimated_value'] = float(value_match.group(1)) if value_match else 10.0
+        
+        # Ensure condition is valid
+        valid_conditions = ["new", "excellent", "good", "fair", "poor"]
+        if parsed_data['condition'] not in valid_conditions:
+            parsed_data['condition'] = "good"
+        
+        logger.info(f"Parsed data: {parsed_data}")
+        
+        return DepositAnalysisResponse(**parsed_data)
+        
+    except Exception as e:
+        logger.error(f"AI Analysis failed: {str(e)}")
+        # Provide fallback response
+        raise HTTPException(
+            status_code=500, 
+            detail=f"AI analysis failed: {str(e)}. Please try again or add the item manually."
+        )
+
+
 # ============ Item Endpoints ============
 @api_router.post("/items", response_model=Item)
 async def create_item(item: ItemCreate):
