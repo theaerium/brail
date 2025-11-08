@@ -93,6 +93,14 @@ export default function MerchantInput() {
         >
           <Ionicons name="close" size={28} color="#000" />
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.requestButton}
+          onPress={handleRequestPayment}
+        >
+          <Ionicons name="phone-portrait" size={20} color="#000" />
+          <Text style={styles.requestButtonText}>Request Payment</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
