@@ -329,6 +329,118 @@ export default function AcceptPayment() {
     };
   }, []);
 
+  // Render different screens based on auth step
+  if (authStep === 'customer' && !customerAuthed) {
+    return (
+      <SafeAreaView style={styles.authContainer} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <ScrollView contentContainerStyle={styles.authContent}>
+          <View style={styles.authHeader}>
+            <Ionicons name="person-circle" size={80} color="#007AFF" />
+            <Text style={styles.authTitle}>Customer Authentication</Text>
+            <Text style={styles.authSubtitle}>Confirm payment of ${amount}</Text>
+          </View>
+
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Items Selected:</Text>
+            {selectedItems.map((item: any, index: number) => (
+              <View key={index} style={styles.summaryItem}>
+                <Text style={styles.summaryItemName}>{item.item_name}</Text>
+                <Text style={styles.summaryItemValue}>
+                  {(item.share_percentage * 100).toFixed(0)}% - ${item.value.toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.pinSection}>
+            <Text style={styles.pinLabel}>Enter PIN or use biometric</Text>
+            <TextInput
+              style={styles.pinInput}
+              placeholder="Enter 4-6 digit PIN"
+              value={customerPin}
+              onChangeText={setCustomerPin}
+              secureTextEntry
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+              onSubmitEditing={() => handlePinSubmit(customerPin, true)}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => handlePinSubmit(customerPin, true)}
+            >
+              <Text style={styles.submitButtonText}>Confirm Payment</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (authStep === 'merchant' && !merchantAuthed) {
+    return (
+      <SafeAreaView style={styles.authContainer} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <ScrollView contentContainerStyle={styles.authContent}>
+          <View style={styles.authHeader}>
+            <Ionicons name="storefront" size={80} color="#34C759" />
+            <Text style={styles.authTitle}>Merchant Authentication</Text>
+            <Text style={styles.authSubtitle}>Receive payment of ${amount}</Text>
+          </View>
+
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Receiving Items:</Text>
+            {selectedItems.map((item: any, index: number) => (
+              <View key={index} style={styles.summaryItem}>
+                <Text style={styles.summaryItemName}>{item.item_name}</Text>
+                <Text style={styles.summaryItemValue}>
+                  {(item.share_percentage * 100).toFixed(0)}% - ${item.value.toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.pinSection}>
+            <Text style={styles.pinLabel}>Enter PIN or use biometric</Text>
+            <TextInput
+              style={styles.pinInput}
+              placeholder="Enter 4-6 digit PIN"
+              value={merchantPin}
+              onChangeText={setMerchantPin}
+              secureTextEntry
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+              onSubmitEditing={() => handlePinSubmit(merchantPin, false)}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => handlePinSubmit(merchantPin, false)}
+            >
+              <Text style={styles.submitButtonText}>Confirm Receipt</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (authStep === 'complete' && processing) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
+        <View style={styles.centerContent}>
+          <View style={styles.processingContainer}>
+            <Ionicons name="checkmark-circle" size={120} color="#34C759" />
+            <Text style={styles.processingTitle}>Processing Trade...</Text>
+            <Text style={styles.processingText}>Recording transaction offline</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
