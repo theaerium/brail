@@ -269,6 +269,20 @@ export default function AcceptPayment() {
               ]}
             />
           </View>
+        ) : transactionDenied ? (
+          <View style={styles.deniedContainer}>
+            <View style={styles.deniedIconContainer}>
+              <Ionicons name="close-circle" size={120} color="#FF3B30" />
+            </View>
+            <Text style={styles.deniedTitle}>Transaction Denied</Text>
+            <Text style={styles.deniedMessage}>Insufficient funds in account</Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.animationContainer}>
             {/* Splash effect */}
