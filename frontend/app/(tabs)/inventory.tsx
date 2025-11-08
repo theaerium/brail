@@ -60,6 +60,13 @@ export default function Inventory() {
     );
   };
 
+  const handleTagItem = (item: any) => {
+    router.push({
+      pathname: '/items/tag-nfc',
+      params: { itemId: item.item_id }
+    });
+  };
+
   const renderItem = ({ item }: any) => (
     <View style={styles.itemCard}>
       <Image
