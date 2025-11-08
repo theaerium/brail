@@ -370,4 +370,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  deniedContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  deniedIconContainer: {
+    marginBottom: 30,
+  },
+  deniedTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FF3B30',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  deniedMessage: {
+    fontSize: 18,
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  backButton: {
+    backgroundColor: '#000',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+  },
+  backButtonText: {
+    color: '#F0EC57',
+    fontSize: 18,
+    fontWeight: '600',
+  },
 });
