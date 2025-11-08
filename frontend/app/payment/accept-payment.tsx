@@ -23,7 +23,9 @@ export default function AcceptPayment() {
   }>();
   
   const { items } = useItemStore();
+  const { user } = useAuthStore();
   const [animationComplete, setAnimationComplete] = useState(false);
+  const [transactionDenied, setTransactionDenied] = useState(false);
   
   // Animation values
   const pulseAnim = useRef(new Animated.Value(1)).current;
