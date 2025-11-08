@@ -389,44 +389,52 @@ export default function AcceptPayment() {
   if (authStep === 'merchant' && !merchantAuthed) {
     return (
       <SafeAreaView style={styles.authContainer} edges={['top', 'bottom', 'left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
         <ScrollView contentContainerStyle={styles.authContent}>
-          <View style={styles.authHeader}>
-            <Ionicons name="storefront" size={80} color="#34C759" />
-            <Text style={styles.authTitle}>Merchant Authentication</Text>
-            <Text style={styles.authSubtitle}>Receive payment of ${amount}</Text>
+          <View style={styles.authTopSection}>
+            <Text style={styles.authAmountLarge}>${amount}</Text>
+            <Text style={styles.authLabel}>Merchant, confirm receipt</Text>
           </View>
 
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Receiving Items:</Text>
+            <Text style={styles.summaryTitle}>Receiving:</Text>
             {selectedItems.map((item: any, index: number) => (
               <View key={index} style={styles.summaryItem}>
-                <Text style={styles.summaryItemName}>{item.item_name}</Text>
-                <Text style={styles.summaryItemValue}>
-                  {(item.share_percentage * 100).toFixed(0)}% - ${item.value.toFixed(2)}
-                </Text>
+                <View style={styles.summaryItemLeft}>
+                  <Text style={styles.summaryItemName}>{item.item_name}</Text>
+                  <Text style={styles.summaryItemPercentage}>
+                    {(item.share_percentage * 100).toFixed(0)}% of item
+                  </Text>
+                </View>
+                <Text style={styles.summaryItemValue}>${item.value.toFixed(2)}</Text>
               </View>
             ))}
           </View>
 
           <View style={styles.pinSection}>
-            <Text style={styles.pinLabel}>Enter PIN or use biometric</Text>
-            <TextInput
-              style={styles.pinInput}
-              placeholder="Enter 4-6 digit PIN"
-              value={merchantPin}
-              onChangeText={setMerchantPin}
-              secureTextEntry
-              keyboardType="number-pad"
-              maxLength={6}
-              autoFocus
-              onSubmitEditing={() => handlePinSubmit(merchantPin, false)}
-            />
+            <View style={styles.iconCircle}>
+              <Ionicons name="checkmark-circle" size={40} color="#000" />
+            </View>
+            <Text style={styles.pinLabel}>Enter your PIN</Text>
+            <View style={styles.pinInputContainer}>
+              <TextInput
+                style={styles.pinInput}
+                placeholder="••••••"
+                placeholderTextColor="#999"
+                value={merchantPin}
+                onChangeText={setMerchantPin}
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+                onSubmitEditing={() => handlePinSubmit(merchantPin, false)}
+              />
+            </View>
             <TouchableOpacity
               style={styles.submitButton}
               onPress={() => handlePinSubmit(merchantPin, false)}
             >
-              <Text style={styles.submitButtonText}>Confirm Receipt</Text>
+              <Text style={styles.submitButtonText}>Accept Payment</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
