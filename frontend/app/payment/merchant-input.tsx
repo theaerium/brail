@@ -63,22 +63,18 @@ export default function MerchantInput() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="close" size={28} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>Accept Payment</Text>
       </View>
 
       <View style={styles.content}>
-        <View style={styles.amountDisplay}>
-          <Text style={styles.currency}>$</Text>
-          <Text style={styles.amountText}>{displayAmount}</Text>
-        </View>
-
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={18} color="#007AFF" />
-          <Text style={styles.infoText}>
-            Customer will tap their phone or NFC card to pay
-          </Text>
+        <View style={styles.topSection}>
+          <Text style={styles.label}>Accept payment</Text>
+          
+          <View style={styles.amountDisplay}>
+            <Text style={styles.currency}>$</Text>
+            <Text style={styles.amountText}>{displayAmount}</Text>
+          </View>
         </View>
 
         <View style={styles.keypad}>
@@ -119,32 +115,33 @@ export default function MerchantInput() {
           </View>
 
           <View style={styles.keypadRow}>
-            <TouchableOpacity style={styles.key} onPress={handleClear}>
-              <Text style={styles.keyTextSmall}>Clear</Text>
+            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('.')}>
+              <Text style={styles.keyText}>.</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('0')}>
               <Text style={styles.keyText}>0</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('.')}>
-              <Text style={styles.keyText}>.</Text>
+            <TouchableOpacity style={styles.key} onPress={handleDelete}>
+              <Ionicons name="backspace-outline" size={28} color="#000" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.keypadRow}>
-            <TouchableOpacity 
-              style={[styles.key, styles.deleteKey]} 
-              onPress={handleDelete}
-            >
-              <Ionicons name="backspace" size={28} color="#FF3B30" />
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleClear}>
+              <Text style={styles.actionButtonText}>Clear</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.key, styles.continueKey, !amount && styles.continueKeyDisabled]} 
-              onPress={handleContinue}
-              disabled={!amount}
-            >
-              <Text style={styles.continueKeyText}>Continue</Text>
+            <TouchableOpacity style={styles.actionButton}>
+              <Text style={styles.actionButtonText}>NFC Info</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity 
+            style={[styles.continueButton, !amount && styles.continueButtonDisabled]} 
+            onPress={handleContinue}
+            disabled={!amount}
+          >
+            <Text style={styles.continueButtonText}>Continue</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
