@@ -103,15 +103,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 24,
-    marginTop: 40,
+    paddingTop: 60,
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     marginRight: 16,
+    padding: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+    flex: 1,
   },
   content: {
     flex: 1,
