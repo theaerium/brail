@@ -122,18 +122,21 @@ const styles = StyleSheet.create({
   },
   merchantInfo: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
+    paddingVertical: 24,
   },
   merchantName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
     marginTop: 16,
+    letterSpacing: 0.5,
   },
   merchantLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#666',
-    marginTop: 4,
+    marginTop: 6,
+    fontWeight: '500',
   },
   amountSection: {
     marginBottom: 32,
