@@ -135,9 +135,9 @@ export default function Inventory() {
       {items.length > 0 && (
         <TouchableOpacity
           style={styles.floatingButton}
-          onPress={() => router.push('/items/add')}
+          onPress={() => router.push('/deposit/capture')}
         >
-          <Ionicons name="add" size={28} color="#FFFFFF" />
+          <Ionicons name="sparkles" size={28} color="#FFFFFF" />
         </TouchableOpacity>
       )}
 
