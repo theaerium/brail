@@ -40,6 +40,21 @@ export default function Profile() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Payment</Text>
+
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push('/payment/merchant-input')}
+        >
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="card" size={24} color="#34C759" />
+            <Text style={styles.menuItemText}>Accept Payment</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#CCC" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
 
         <TouchableOpacity style={styles.menuItem}>
