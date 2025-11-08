@@ -92,7 +92,7 @@ export default function Inventory() {
       <View style={styles.itemActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => router.push(`/items/tag-nfc?itemId=${item.item_id}`)}
+          onPress={() => handleTagItem(item)}
         >
           <Ionicons name="phone-portrait" size={20} color="#007AFF" />
         </TouchableOpacity>
