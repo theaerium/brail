@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,17 +18,54 @@ import { Ionicons } from '@expo/vector-icons';
 interface Store {
   name: string;
   url: string;
+  logoUrl: string;
   icon: string;
   color: string;
 }
 
 const STORES: Store[] = [
-  { name: 'Other', url: 'https://www.google.com', icon: 'search', color: '#4285F4' },
-  { name: 'Shop', url: 'https://shop.app', icon: 'bag-handle', color: '#5B21B6' },
-  { name: 'Amazon', url: 'https://www.amazon.com', icon: 'logo-amazon', color: '#FF9900' },
-  { name: 'Target', url: 'https://www.target.com', icon: 'radio-button-on', color: '#CC0000' },
-  { name: 'Lululemon', url: 'https://www.lululemon.com', icon: 'shirt', color: '#D31334' },
-  { name: 'Walmart', url: 'https://www.walmart.com', icon: 'apps', color: '#0071CE' },
+  { 
+    name: 'Other', 
+    url: 'https://www.google.com', 
+    logoUrl: 'https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+    icon: 'search', 
+    color: '#4285F4' 
+  },
+  { 
+    name: 'Shop', 
+    url: 'https://shop.app', 
+    logoUrl: 'https://cdn.shopify.com/shop-assets/static/shop-app-icon-512x512.png',
+    icon: 'bag-handle', 
+    color: '#5B21B6' 
+  },
+  { 
+    name: 'Amazon', 
+    url: 'https://www.amazon.com', 
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+    icon: 'logo-amazon', 
+    color: '#FF9900' 
+  },
+  { 
+    name: 'Target', 
+    url: 'https://www.target.com', 
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Target_logo.svg',
+    icon: 'radio-button-on', 
+    color: '#CC0000' 
+  },
+  { 
+    name: 'Lululemon', 
+    url: 'https://www.lululemon.com', 
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Lululemon_Athletica_logo.svg',
+    icon: 'shirt', 
+    color: '#D31334' 
+  },
+  { 
+    name: 'Walmart', 
+    url: 'https://www.walmart.com', 
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Walmart_logo.svg',
+    icon: 'apps', 
+    color: '#0071CE' 
+  },
 ];
 
 export default function ShoppingScreen() {
