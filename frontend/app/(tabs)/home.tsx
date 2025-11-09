@@ -103,19 +103,9 @@ export default function HomeScreen() {
             onPress={() => router.push('/(tabs)/payments')}
           >
             <View style={styles.actionIcon}>
-              <Ionicons name="arrow-forward" size={24} color="#007AFF" />
+              <Ionicons name="swap-horizontal" size={24} color="#007AFF" />
             </View>
-            <Text style={styles.actionText}>Send</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/items/add')}
-          >
-            <View style={styles.actionIcon}>
-              <Ionicons name="add-circle-outline" size={24} color="#007AFF" />
-            </View>
-            <Text style={styles.actionText}>Add Item</Text>
+            <Text style={styles.actionText}>Transfer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -123,9 +113,9 @@ export default function HomeScreen() {
             onPress={() => router.push('/(tabs)/shopping')}
           >
             <View style={styles.actionIcon}>
-              <Ionicons name="basket-outline" size={24} color="#007AFF" />
+              <Ionicons name="card-outline" size={24} color="#007AFF" />
             </View>
-            <Text style={styles.actionText}>Shop</Text>
+            <Text style={styles.actionText}>Spend</Text>
           </TouchableOpacity>
         </View>
 
