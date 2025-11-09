@@ -97,20 +97,16 @@ export default function ConfirmDeposit() {
         share_percentage: 1.0,
       });
 
-      Alert.alert(
-        'Success!',
-        `${analysis.name} deposited successfully! Would you like to tag it with NFC?`,
-        [
-          {
-            text: 'Tag Now',
-            onPress: () => router.replace(`/items/tag-nfc?itemId=${item.item_id}`),
-          },
-          {
-            text: 'Done',
-            onPress: () => router.replace('/(tabs)/home'),
-          },
-        ]
-      );
+      // Navigate to NFC tagging screen with item data
+      router.replace({
+        pathname: '/deposit/tag-nfc',
+        params: {
+          itemId: item.item_id,
+          itemName: analysis.name,
+          itemValue: analysis.estimated_value.toString(),
+          photo: photo,
+        },
+      });
     } catch (err) {
       console.error('Deposit failed:', err);
       Alert.alert('Error', 'Failed to deposit item. Please try again.');
