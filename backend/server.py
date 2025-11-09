@@ -175,6 +175,29 @@ async def get_user(user_id: str):
         raise HTTPException(status_code=404, detail="User not found")
     return User(**user)
 
+@api_router.put("/users/{user_id}/personal-info", response_model=User)
+async def update_personal_info(user_id: str, personal_info: PersonalInfoUpdate):
+    # Check if user exists
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prepare update data (only include non-None values)
+    update_data = {k: v for k, v in personal_info.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data provided to update")
+    
+    # Update user
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated user
+    updated_user = await db.users.find_one({"user_id": user_id})
+    return User(**updated_user)
+
 
 # ============ AI Deposit Analysis Endpoint ============
 @api_router.post("/items/analyze-deposit", response_model=DepositAnalysisResponse)
