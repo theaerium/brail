@@ -12,6 +12,7 @@ interface User {
   username: string;
   pin_hash: string;
   biometric_enabled: boolean;
+  balance?: number;
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
@@ -33,6 +34,7 @@ interface AuthState {
   checkAuth: () => Promise<void>;
   hashPin: (pin: string) => Promise<string>;
   setUser: (user: User | null, pinHash?: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -125,6 +127,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+    }
+  },
+
+  refreshUser: async () => {
+    const { user } = get();
+    if (!user) {
+      console.log('[AuthStore] No user to refresh');
+      return;
+    }
+
+    try {
+      console.log('[AuthStore] Refreshing user:', user.user_id);
+      let updatedUser;
+      if (DEV_BYPASS) {
+        console.log('[DEV BYPASS] Refreshing user with mock API');
+        updatedUser = await MockAPIService.getUser(user.user_id);
+        console.log('[DEV BYPASS] Updated user:', updatedUser);
+      } else {
+        console.log('[AuthStore] Fetching from API:', `${API_URL}/api/users/${user.user_id}`);
+        const response = await axios.get(`${API_URL}/api/users/${user.user_id}`);
+        updatedUser = response.data;
+        console.log('[AuthStore] API response:', updatedUser);
+      }
+
+      await get().setUser(updatedUser);
+      console.log('[AuthStore] User refreshed, new balance:', updatedUser.balance);
+    } catch (error: any) {
+      console.error('[AuthStore] Failed to refresh user:', error);
+      console.error('[AuthStore] Error message:', error.message);
     }
   },
 }));

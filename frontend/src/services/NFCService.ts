@@ -88,25 +88,68 @@ class NFCService {
     }
 
     try {
+      console.log('[NFCService] Starting writeItemTag...');
+      console.log('[NFCService] Input data:', JSON.stringify(data, null, 2));
+
+      console.log('[NFCService] Initializing NFC...');
       await this.init();
+
+      console.log('[NFCService] Requesting NDEF technology...');
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
       // Compress data for small tags
+      console.log('[NFCService] Compressing data...');
       const compactData = this.compressItemData(data);
+      console.log('[NFCService] Compact data:', JSON.stringify(compactData, null, 2));
+
       const jsonString = JSON.stringify(compactData);
+      console.log('[NFCService] JSON string length:', jsonString.length, 'bytes');
+      console.log('[NFCService] JSON string:', jsonString);
 
       // Create NDEF record
+      console.log('[NFCService] Encoding NDEF message...');
       const bytes = Ndef.encodeMessage([Ndef.textRecord(jsonString)]);
+      console.log('[NFCService] Encoded bytes length:', bytes?.length);
 
       // Write to tag
+      console.log('[NFCService] Writing to NFC tag...');
       await NfcManager.ndefHandler.writeNdefMessage(bytes);
 
-      console.log('Item tag written successfully');
-    } catch (error) {
-      console.error('Failed to write NFC tag:', error);
-      throw error;
+      console.log('[NFCService] Item tag written successfully!');
+    } catch (error: any) {
+      console.error('[NFCService] Failed to write NFC tag:', error);
+      console.error('[NFCService] Error type:', typeof error);
+      console.error('[NFCService] Error name:', error?.name);
+      console.error('[NFCService] Error message:', error?.message);
+      console.error('[NFCService] Error constructor:', error?.constructor?.name);
+
+      // Create a more user-friendly error message
+      let userMessage = 'Failed to write to NFC tag.';
+
+      if (error?.constructor?.name === 'TagUpdateFailure' || error?.name === 'TagUpdateFailure') {
+        userMessage = 'Tag write failed. This usually means:\n\n' +
+          '• Tag is write-protected or locked\n' +
+          '• Tag moved away during write\n' +
+          '• Tag is not NTAG215 compatible\n' +
+          '• Tag is already programmed and locked\n\n' +
+          'Try a new, blank NTAG215 tag.';
+      } else if (error?.name === 'UserCancel') {
+        userMessage = 'NFC write was cancelled.';
+      } else if (error?.name === 'Timeout') {
+        userMessage = 'NFC write timed out. Hold phone steady near tag for longer.';
+      }
+
+      const enhancedError = new Error(userMessage);
+      enhancedError.name = error?.constructor?.name || error?.name || 'NFCError';
+      throw enhancedError;
     } finally {
-      NfcManager.cancelTechnologyRequest();
+      console.log('[NFCService] Canceling technology request...');
+      try {
+        await NfcManager.cancelTechnologyRequest();
+        console.log('[NFCService] Technology request canceled');
+      } catch (cancelError) {
+        console.error('[NFCService] Error canceling technology:', cancelError);
+      }
     }
   }
 
@@ -116,37 +159,70 @@ class NFCService {
     }
 
     try {
+      console.log('[NFCService] Starting readItemTag...');
+
+      console.log('[NFCService] Initializing NFC...');
       await this.init();
+
+      console.log('[NFCService] Requesting NDEF technology...');
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
+      console.log('[NFCService] Getting tag...');
       const tag = await NfcManager.getTag();
 
-      if (!tag || !tag.ndefMessage) {
+      console.log('[NFCService] Tag received:', tag ? 'YES' : 'NO');
+      console.log('[NFCService] Tag object:', JSON.stringify(tag, null, 2));
+
+      if (!tag) {
+        console.error('[NFCService] Tag is null/undefined');
+        throw new Error('No tag detected');
+      }
+
+      console.log('[NFCService] Tag ndefMessage:', tag.ndefMessage ? 'EXISTS' : 'NULL');
+      console.log('[NFCService] ndefMessage content:', tag.ndefMessage);
+
+      if (!tag.ndefMessage) {
+        console.error('[NFCService] Tag has no NDEF message');
+        console.error('[NFCService] Tag may be blank, locked, or corrupted');
         throw new Error('No data on tag');
       }
 
       const ndefRecords = tag.ndefMessage;
+      console.log('[NFCService] NDEF records count:', ndefRecords.length);
+
       const textRecord = ndefRecords[0];
+      console.log('[NFCService] First record:', textRecord);
 
       if (textRecord && textRecord.payload) {
+        console.log('[NFCService] Payload length:', textRecord.payload.length);
         const payloadData = Ndef.text.decodePayload(new Uint8Array(textRecord.payload));
+        console.log('[NFCService] Decoded payload:', payloadData);
+
         const compactData = JSON.parse(payloadData);
-        return this.expandItemData(compactData);
+        console.log('[NFCService] Parsed data:', compactData);
+
+        const expandedData = this.expandItemData(compactData);
+        console.log('[NFCService] Read successful!');
+        return expandedData;
       }
 
+      console.error('[NFCService] No payload in text record');
       throw new Error('Invalid tag format');
-    } catch (error) {
-      console.error('Failed to read NFC tag:', error);
+    } catch (error: any) {
+      console.error('[NFCService] Failed to read NFC tag:', error);
+      console.error('[NFCService] Error message:', error.message);
+      console.error('[NFCService] Error type:', error.constructor?.name);
       throw error;
     } finally {
-      NfcManager.cancelTechnologyRequest();
+      console.log('[NFCService] Canceling technology request...');
+      await NfcManager.cancelTechnologyRequest();
     }
   }
 
   private compressItemData(data: ItemNFCData): CompactNFCData {
     return {
-      id: this.shortenUUID(data.item_id),
-      own: this.shortenUUID(data.owner_id),
+      id: data.item_id, // Store full UUID
+      own: data.owner_id, // Store full UUID
       cat: data.category.substring(0, 10),
       sub: data.subcategory.substring(0, 15),
       brd: data.brand?.substring(0, 10),
@@ -155,7 +231,7 @@ class NFCService {
       pct: data.share_percentage
         ? Math.round(data.share_percentage * 1000) / 1000
         : undefined,
-      par: data.parent_item_id ? this.shortenUUID(data.parent_item_id) : undefined,
+      par: data.parent_item_id || undefined,
       ts: data.timestamp,
       sig: data.signature.substring(0, 16),
     };
@@ -163,8 +239,8 @@ class NFCService {
 
   private expandItemData(compact: CompactNFCData): ItemNFCData {
     return {
-      item_id: compact.id, // In production, expand to full UUID
-      owner_id: compact.own,
+      item_id: compact.id, // Full UUID
+      owner_id: compact.own, // Full UUID
       category: compact.cat,
       subcategory: compact.sub,
       brand: compact.brd,
@@ -175,10 +251,6 @@ class NFCService {
       timestamp: compact.ts,
       signature: compact.sig,
     };
-  }
-
-  private shortenUUID(uuid: string): string {
-    return uuid.replace(/-/g, '').substring(0, 12);
   }
 
   async generateSignature(data: string): Promise<string> {

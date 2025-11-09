@@ -160,7 +160,7 @@ export default function AcceptPayment() {
           [
             {
               text: "Done",
-              onPress: () => router.replace("/(tabs)/inventory"),
+              onPress: () => router.replace("/(tabs)/home"),
             },
           ],
         );
@@ -181,17 +181,25 @@ export default function AcceptPayment() {
 
     try {
       const amountNum = parseFloat(amount || "0");
+      console.log("Starting payment completion...");
+      console.log("Amount:", amountNum);
+      console.log("Customer ID:", customerIdFromNFC);
+      console.log("Merchant ID:", merchantId);
+      console.log("Selected items:", selectedItems);
 
       // Transfer items on the server
+      console.log("Transferring items...");
       for (const item of selectedItems) {
         await updateItem(item.item_id, {
           owner_id: merchantId as string,
           share_percentage: 1.0 - item.share_percentage,
         });
+        console.log(`Transferred item ${item.item_id}`);
       }
 
       // Create transaction for CUSTOMER (person paying) - type: "payment"
-      await createTransaction({
+      console.log("Creating customer transaction...");
+      const customerTx = await createTransaction({
         user_id: customerIdFromNFC,
         type: "payment",
         amount: amountNum,
@@ -199,9 +207,11 @@ export default function AcceptPayment() {
         status: "completed",
         description: `Spent at ${merchantName}`,
       });
+      console.log("Customer transaction created:", customerTx);
 
       // Create transaction for MERCHANT (person receiving) - type: "refund" (acts as income)
-      await createTransaction({
+      console.log("Creating merchant transaction...");
+      const merchantTx = await createTransaction({
         user_id: merchantId as string,
         type: "refund",
         amount: amountNum,
@@ -209,25 +219,46 @@ export default function AcceptPayment() {
         status: "completed",
         description: `Received payment from customer`,
       });
+      console.log("Merchant transaction created:", merchantTx);
+
+      // Refresh merchant's user data to update balance
+      console.log("Refreshing merchant user data...");
+      const { refreshUser } = useAuthStore.getState();
+      await refreshUser();
+      const updatedUser = useAuthStore.getState().user;
+      console.log("Updated merchant balance:", updatedUser?.balance);
 
       // Show success
       setProcessing(false);
+      console.log("Payment completed successfully!");
+
       Alert.alert(
         "Payment Complete!",
-        `Successfully received $${amount}\n\nCustomer paid via NFC.\nItems transferred and transactions recorded.`,
+        `Successfully received $${amount}\n\nCustomer paid via NFC.\nItems transferred and transactions recorded.\n\nNew balance: $${updatedUser?.balance?.toFixed(2) || "N/A"}`,
         [
           {
             text: "Done",
-            onPress: () => router.replace("/(tabs)/home"),
+            onPress: () => {
+              console.log("Navigating back to home...");
+              // Use back navigation to return to previous screen
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                console.log("Cannot go back, pushing to home");
+                router.push("/(tabs)/home");
+              }
+            },
           },
         ],
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
       setProcessing(false);
       Alert.alert(
         "Payment Failed",
-        "Failed to complete payment. Please try again.",
+        `Failed to complete payment: ${error.message || "Unknown error"}. Please try again.`,
       );
     }
   };
@@ -248,7 +279,7 @@ export default function AcceptPayment() {
     }
   };
 
-  // Handle NFC tap for payment
+  // Handle NFC tap for payment - SIMPLIFIED VERSION
   const handleNFCTap = async () => {
     if (!nfcSupported || !isNFCAvailable) {
       Alert.alert(
@@ -258,7 +289,6 @@ export default function AcceptPayment() {
           {
             text: "Use PIN",
             onPress: () => {
-              // Trigger the normal authentication flow
               setAnimationComplete(true);
               setTimeout(() => setAuthStep("customer"), 300);
             },
@@ -271,52 +301,113 @@ export default function AcceptPayment() {
     setNfcScanning(true);
 
     try {
-      // Read NFC tag to get user's wallet/payment info
+      console.log("Starting NFC read...");
+
+      // Read NFC tag to get item info
       const tagData = await NFCService.readItemTag();
+
+      console.log("NFC tag read successfully:", {
+        item_id: tagData.item_id,
+        owner_id: tagData.owner_id,
+        value: tagData.value,
+        category: tagData.category,
+        subcategory: tagData.subcategory,
+      });
 
       setNfcScanning(false);
 
-      // Get the customer's user ID from the NFC tag
-      const customerIdFromTag = tagData.owner_id;
+      const taggedItemId = tagData.item_id;
 
-      // Verify customer has an account (tag has valid user ID)
-      if (!customerIdFromTag) {
+      if (!taggedItemId) {
+        console.error("Invalid tag data:", { taggedItemId });
         Alert.alert(
           "Invalid Card",
-          "This card doesn't have valid payment information.",
+          "This card doesn't have valid item information.",
           [{ text: "Try Again", onPress: handleNFCTap }],
         );
         return;
       }
 
-      // NFC authentication successful - process payment
-      const amountNum = parseFloat(amount || "0");
+      // NFC tag now contains full UUIDs, so we can use them directly
+      const customerIdFromTag = tagData.owner_id;
+      console.log("Customer ID from NFC tag:", customerIdFromTag);
+      console.log("Item ID from NFC tag:", taggedItemId);
+      console.log("Merchant ID:", merchantId);
 
-      // Get customer's items from the server
-      const { items: customerItems } = useItemStore.getState();
-
-      // Check if customer has enough value
-      const totalCustomerValue = customerItems
-        .filter((item) => item.owner_id === customerIdFromTag)
-        .reduce((sum, item) => sum + item.value, 0);
-
-      if (totalCustomerValue < amountNum) {
+      // Check if customer and merchant are the same person
+      if (customerIdFromTag === merchantId) {
+        setNfcScanning(false);
         Alert.alert(
-          "Insufficient Funds",
-          `Customer doesn't have enough items to cover $${amount}.\n\nCustomer balance: $${totalCustomerValue.toFixed(2)}`,
+          "Invalid Payment",
+          "You cannot pay yourself! The NFC card belongs to the merchant.\n\nFor testing, you need:\n- A card tagged by a different user\n- Or test with two different devices",
           [{ text: "OK" }],
         );
         return;
       }
 
-      // Auto-select items to cover the payment amount
+      const { fetchItems } = useItemStore.getState();
+
+      // Parse payment amount
+      const amountNum = parseFloat(amount || "0");
+      console.log("Payment amount:", amountNum);
+
+      // Fetch all customer's items
+      console.log("Fetching customer items for:", customerIdFromTag);
+      await fetchItems(customerIdFromTag);
+      const { items: updatedItems } = useItemStore.getState();
+
+      console.log("Total items in store after fetch:", updatedItems.length);
+
+      const customerItems = updatedItems.filter(
+        (item) => item.owner_id === customerIdFromTag,
+      );
+
+      console.log(
+        "Customer has",
+        customerItems.length,
+        "items after filtering",
+      );
+      console.log(
+        "Customer items:",
+        customerItems.map((i) => ({
+          id: i.item_id,
+          owner: i.owner_id,
+          value: i.value,
+          name: `${i.brand} ${i.subcategory}`,
+        })),
+      );
+
+      // Calculate total value
+      const totalCustomerValue = customerItems.reduce(
+        (sum, item) => sum + item.value,
+        0,
+      );
+
+      console.log("Customer total value:", totalCustomerValue);
+
+      if (totalCustomerValue < amountNum) {
+        console.error("Insufficient funds:", {
+          required: amountNum,
+          available: totalCustomerValue,
+          customerItems: customerItems.length,
+          allItems: updatedItems.length,
+        });
+
+        // Check if this is a dev mode / same device issue
+        const isDev = process.env.EXPO_PUBLIC_DEV_BYPASS === "true";
+        const warningMessage = isDev
+          ? `Customer doesn't have enough items to cover $${amount}.\n\nCustomer balance: $${totalCustomerValue.toFixed(2)}\n\n⚠️ DEV MODE: Items don't sync between devices. You need to:\n- Use the same device (scan as customer, then as merchant)\n- Or use a real backend server`
+          : `Customer doesn't have enough items to cover $${amount}.\n\nCustomer balance: $${totalCustomerValue.toFixed(2)}`;
+
+        Alert.alert("Insufficient Funds", warningMessage, [{ text: "OK" }]);
+        return;
+      }
+
+      // Auto-select items to cover payment
       const itemsToTransfer: any[] = [];
       let runningTotal = 0;
 
-      // Sort items by value (descending) for optimal selection
-      const sortedItems = [...customerItems]
-        .filter((item) => item.owner_id === customerIdFromTag)
-        .sort((a, b) => b.value - a.value);
+      const sortedItems = [...customerItems].sort((a, b) => b.value - a.value);
 
       for (const item of sortedItems) {
         if (runningTotal >= amountNum) break;
@@ -335,7 +426,7 @@ export default function AcceptPayment() {
           });
           runningTotal += item.value;
         } else if (runningTotal < amountNum) {
-          // Transfer partial percentage of item
+          // Transfer partial item
           const percentage = remainingAmount / item.value;
           itemsToTransfer.push({
             item_id: item.item_id,
@@ -349,16 +440,19 @@ export default function AcceptPayment() {
         }
       }
 
-      // Store selected items and customer ID for confirmation screen
+      console.log("Items to transfer:", itemsToTransfer);
+
+      // Store for confirmation screen
       setSelectedItems(itemsToTransfer);
       setCustomerIdFromNFC(customerIdFromTag);
 
-      // Show confirmation screen with transfer details
+      // Show confirmation screen
       setNfcReadComplete(true);
       setAnimationComplete(true);
     } catch (error: any) {
       setNfcScanning(false);
       console.error("NFC payment failed:", error);
+      console.error("Error stack:", error.stack);
       Alert.alert(
         "Payment Failed",
         error.message ||
@@ -378,7 +472,17 @@ export default function AcceptPayment() {
   };
 
   useEffect(() => {
-    checkNFCSupport();
+    const initializeNFC = async () => {
+      // First, load all items so we have data to work with
+      console.log("Loading all items for merchant...");
+      const { fetchItems } = useItemStore.getState();
+      await fetchItems(merchantId as string);
+
+      console.log("Checking NFC support...");
+      await checkNFCSupport();
+    };
+
+    initializeNFC();
   }, []);
 
   useEffect(() => {

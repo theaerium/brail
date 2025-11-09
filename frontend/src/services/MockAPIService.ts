@@ -54,6 +54,9 @@ class MockAPIService {
     };
     this.mockUsers[defaultUser.username.toLowerCase()] = defaultUser;
   }
+  private mockCustomerId = 'mock-customer-456'; // Second user for testing payments
+  private mockTransactions: any[] = [];
+  private mockUserBalance = 1250.50;
 
   private delay(ms: number = 300): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -165,6 +168,11 @@ class MockAPIService {
 
     return this.ensureMockUser(userData.username, {
       pin_hash: userData.pin_hash || 'mock-pin-hash',
+<<<<<<< HEAD
+=======
+      biometric_enabled: false,
+      balance: 0.0,
+>>>>>>> 661990c (Update nfc payment)
       email: userData.email || 'mock@example.com',
       first_name: userData.first_name || null,
       last_name: userData.last_name || null,
@@ -179,10 +187,12 @@ class MockAPIService {
 
   async loginUser(credentials: any): Promise<any> {
     console.log('[MOCK API] Logging in user:', credentials);
+    console.log('[MOCK API] Current balance:', this.mockUserBalance);
     await this.delay();
 
     return this.ensureMockUser(credentials.username, {
       pin_hash: credentials.pin_hash || 'mock-pin-hash',
+<<<<<<< HEAD
     });
   }
 
@@ -190,22 +200,76 @@ class MockAPIService {
     console.log('[MOCK API] Looking up user by username:', username);
     await this.delay();
     return this.ensureMockUser(username);
+=======
+      biometric_enabled: false,
+      balance: this.mockUserBalance,
+      email: 'mock@example.com',
+      first_name: null,
+      last_name: null,
+      phone: null,
+      street_address: null,
+      city: null,
+      state: null,
+      zip_code: null,
+      country: null,
+    };
+  }
+
+  async getUser(userId: string): Promise<any> {
+    console.log('[MOCK API] Getting user:', userId);
+    console.log('[MOCK API] Current balance:', this.mockUserBalance);
+    await this.delay();
+
+    return {
+      user_id: userId,
+      username: 'mockuser',
+      pin_hash: 'mock-pin-hash',
+      biometric_enabled: false,
+      balance: this.mockUserBalance,
+      email: 'mock@example.com',
+      first_name: null,
+      last_name: null,
+      phone: null,
+      street_address: null,
+      city: null,
+      state: null,
+      zip_code: null,
+      country: null,
+    };
+>>>>>>> 661990c (Update nfc payment)
   }
 
   async createTransaction(transactionData: any): Promise<any> {
     console.log('[MOCK API] Creating transaction:', transactionData);
     await this.delay();
 
-    return {
+    const newTransaction = {
       transaction_id: this.generateId(),
       ...transactionData,
       status: transactionData.status || 'completed',
       created_at: new Date().toISOString(),
     };
+
+    // Store the transaction
+    this.mockTransactions.push(newTransaction);
+    console.log('[MOCK API] Transaction stored. Total transactions:', this.mockTransactions.length);
+
+    // Update balance
+    const oldBalance = this.mockUserBalance;
+    if (transactionData.type === 'deposit' || transactionData.type === 'refund') {
+      this.mockUserBalance += transactionData.amount;
+      console.log('[MOCK API] Balance increased:', oldBalance, '->', this.mockUserBalance);
+    } else if (transactionData.type === 'payment' || transactionData.type === 'withdrawal') {
+      this.mockUserBalance -= transactionData.amount;
+      console.log('[MOCK API] Balance decreased:', oldBalance, '->', this.mockUserBalance);
+    }
+
+    return newTransaction;
   }
 
   async fetchTransactions(userId: string): Promise<any[]> {
     console.log('[MOCK API] Fetching transactions for user:', userId);
+    console.log('[MOCK API] Stored transactions:', this.mockTransactions.length);
     await this.delay();
 
     // Generate transactions from mock items if they exist
@@ -228,8 +292,12 @@ class MockAPIService {
       created_at: item.created_at,
     }));
 
-    // Add some mock payment transactions
-    const mockPayments = [
+    // Add stored transactions (from payments, etc.)
+    const storedTransactions = this.mockTransactions.filter(tx => tx.user_id === userId);
+    console.log('[MOCK API] User transactions:', storedTransactions.length);
+
+    // Add some initial mock payment transactions (if no stored ones)
+    const mockPayments = this.mockTransactions.length === 0 ? [
       {
         transaction_id: 'mock-tx-payment-1',
         user_id: userId,
@@ -250,10 +318,12 @@ class MockAPIService {
         description: 'Payment to Grocery Store',
         created_at: new Date(Date.now() - 172800000).toISOString(),
       },
-    ];
+    ] : [];
 
     // Combine and sort by date (newest first)
-    return [...itemTransactions, ...mockPayments].sort(
+    const allTransactions = [...itemTransactions, ...storedTransactions, ...mockPayments];
+    console.log('[MOCK API] Returning', allTransactions.length, 'total transactions');
+    return allTransactions.sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }

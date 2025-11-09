@@ -17,16 +17,26 @@ import type { Transaction as TransactionType } from "../../src/store/transaction
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const { items, fetchItems } = useItemStore();
   const { transactions, fetchTransactions } = useTransactionStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
+      console.log("[HomeScreen] Screen focused, refreshing data...");
       if (user) {
+        console.log("[HomeScreen] Fetching items for user:", user.user_id);
         fetchItems(user.user_id);
+        console.log(
+          "[HomeScreen] Fetching transactions for user:",
+          user.user_id,
+        );
         fetchTransactions(user.user_id);
+        console.log("[HomeScreen] Refreshing user data...");
+        refreshUser();
+      } else {
+        console.log("[HomeScreen] No user found");
       }
     }, [user])
   );
@@ -36,12 +46,14 @@ export default function HomeScreen() {
     if (user) {
       await fetchItems(user.user_id);
       await fetchTransactions(user.user_id);
+      await refreshUser();
     }
     setRefreshing(false);
   };
 
-  // Calculate total account value
-  const totalValue = items.reduce((sum, item) => sum + (item.value || 0), 0);
+  // Use account balance from user object, fallback to total item value
+  const accountBalance =
+    user?.balance ?? items.reduce((sum, item) => sum + (item.value || 0), 0);
 
   // Helper function to format transaction time
   const formatTime = (dateString: string) => {
@@ -159,7 +171,9 @@ export default function HomeScreen() {
 
             {/* Balance Amount */}
             <View style={styles.balanceAmountContainer}>
-              <Text style={styles.balanceAmount}>${totalValue.toFixed(2)}</Text>
+              <Text style={styles.balanceAmount}>
+                ${accountBalance.toFixed(2)}
+              </Text>
             </View>
           </SafeAreaView>
         </View>

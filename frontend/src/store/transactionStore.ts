@@ -66,18 +66,23 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }
   },
 
-  createTransaction: async (transactionData, options = {}) => {
+  createTransaction: async (transactionData) => {
+    console.log('[TransactionStore] Creating transaction:', transactionData);
     set({ isLoading: true });
     try {
       let newTransaction;
       if (DEV_BYPASS) {
         console.log('[DEV BYPASS] Creating transaction with mock API');
         newTransaction = await MockAPIService.createTransaction(transactionData);
+        console.log('[DEV BYPASS] Transaction created:', newTransaction);
       } else {
+        console.log('[TransactionStore] Posting to API:', `${API_URL}/api/transactions`);
         const response = await axios.post(`${API_URL}/api/transactions`, transactionData);
         newTransaction = response.data;
+        console.log('[TransactionStore] API response:', newTransaction);
       }
 
+<<<<<<< HEAD
       if (options.silent) {
         set({ isLoading: false });
       } else {
@@ -86,8 +91,18 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
           isLoading: false
         }));
       }
+=======
+      set((state) => ({
+        transactions: [newTransaction, ...state.transactions],
+        isLoading: false
+      }));
+      console.log('[TransactionStore] Transaction added to store, total transactions:', get().transactions.length);
+>>>>>>> 661990c (Update nfc payment)
       return newTransaction;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[TransactionStore] Failed to create transaction:', error);
+      console.error('[TransactionStore] Error message:', error.message);
+      console.error('[TransactionStore] Error response:', error.response?.data);
       set({ isLoading: false });
       throw error;
     }

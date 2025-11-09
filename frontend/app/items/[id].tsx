@@ -60,22 +60,20 @@ export default function ItemDetailsScreen() {
 
       setIsScanning(false);
 
-      // Compare shortened UUIDs (first 12 chars without dashes)
-      const shortenUUID = (uuid: string) =>
-        uuid.replace(/-/g, "").substring(0, 12);
-      const tagItemId = shortenUUID(tagData.item_id);
-      const currentItemId = shortenUUID(item?.item_id || "");
+      // Compare full UUIDs directly
+      const tagItemId = tagData.item_id;
+      const currentItemId = item?.item_id || "";
 
       if (tagItemId === currentItemId) {
         Alert.alert(
           "✓ Tag Verified!",
-          `This tag matches your item:\n\n${item.brand} ${item.subcategory}\n\nValue: $${item.value.toFixed(2)}\nCondition: ${item.condition}\n\nTag ID: ${tagItemId}`,
+          `This tag matches your item:\n\n${item.brand} ${item.subcategory}\n\nValue: $${item.value.toFixed(2)}\nCondition: ${item.condition}\n\nOwner: ${tagData.owner_id}`,
           [{ text: "OK" }],
         );
       } else {
         Alert.alert(
           "Tag Mismatch",
-          `This tag does not match this item.\n\nTag ID: ${tagItemId}\nExpected: ${currentItemId}\n\nIt may belong to a different item.`,
+          `This tag does not match this item.\n\nTag Item ID: ${tagItemId}\nExpected: ${currentItemId}\n\nIt may belong to a different item.`,
           [{ text: "OK" }],
         );
       }

@@ -67,44 +67,66 @@ export default function TagNFC() {
       }
 
       // Real NFC write
+      console.log("Preparing NFC data for item:", item.item_id);
+
       const nfcData: ItemNFCData = {
         item_id: item.item_id,
         owner_id: item.owner_id,
         category: item.category,
         subcategory: item.subcategory,
-        brand: item.brand,
+        brand: item.brand || "Unknown",
         value: item.value,
-        is_fractional: item.is_fractional,
-        share_percentage: item.share_percentage,
-        parent_item_id: item.parent_item_id,
+        is_fractional: item.is_fractional || false,
+        share_percentage: item.share_percentage || 1.0,
+        parent_item_id: item.parent_item_id || undefined,
         timestamp: Date.now(),
         signature: await NFCService.generateSignature(
           `${item.item_id}${item.owner_id}${Date.now()}`,
         ),
       };
 
+      console.log("NFC data prepared:", JSON.stringify(nfcData, null, 2));
+      console.log(
+        "Data size estimate:",
+        JSON.stringify(nfcData).length,
+        "bytes",
+      );
+      console.log("Calling NFCService.writeItemTag...");
+
       await NFCService.writeItemTag(nfcData);
 
+      console.log("NFC write successful!");
       setIsWriting(false);
+
       Alert.alert(
         "Success!",
         "Your item has been tagged with NFC. You can now use this tag for quick scanning and verification.",
         [
           {
             text: "Done",
-            onPress: () => router.replace("/(tabs)/inventory"),
+            onPress: () => router.back(),
           },
         ],
       );
     } catch (error: any) {
       setIsWriting(false);
-      console.error("NFC write failed:", error);
+      console.error("=== NFC WRITE ERROR ===");
+      console.error("Error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error name:", error.name);
+      console.error("Error stack:", error.stack);
+      console.error("Error toString:", error.toString());
+
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+
       Alert.alert(
         "Write Failed",
-        error.message || "Failed to write NFC tag. Please try again.",
+        `Failed to write NFC tag.\n\nError: ${error.message || error.toString()}\n\nMake sure:\n- NFC is enabled on your device\n- You're holding the tag close\n- The tag is NTAG215 compatible`,
         [
           { text: "Retry", onPress: handleWriteNFC },
-          { text: "Cancel", onPress: () => setIsWriting(false) },
+          { text: "Cancel", onPress: () => router.back() },
         ],
       );
     }

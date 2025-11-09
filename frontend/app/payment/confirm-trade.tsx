@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { OfflineTradeService } from '../../src/services/OfflineTradeService';
-import { useItemStore } from '../../src/store/itemStore';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import * as LocalAuthentication from "expo-local-authentication";
+import { OfflineTradeService } from "../../src/services/OfflineTradeService";
+import { useItemStore } from "../../src/store/itemStore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ConfirmTrade() {
   const router = useRouter();
@@ -36,60 +36,60 @@ export default function ConfirmTrade() {
   }>();
 
   const { updateItem } = useItemStore();
-  const [customerPin, setCustomerPin] = useState('');
-  const [merchantPin, setMerchantPin] = useState('');
+  const [customerPin, setCustomerPin] = useState("");
+  const [merchantPin, setMerchantPin] = useState("");
   const [customerAuthed, setCustomerAuthed] = useState(false);
   const [merchantAuthed, setMerchantAuthed] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  const tradeItems = JSON.parse(tradeItemsStr || '[]');
+  const tradeItems = JSON.parse(tradeItemsStr || "[]");
 
   const handleBiometricAuth = async (isCustomer: boolean) => {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
-        Alert.alert('Biometric Not Available', 'Please use PIN authentication');
+        Alert.alert("Biometric Not Available", "Please use PIN authentication");
         return;
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: `Authenticate as ${isCustomer ? 'Customer' : 'Merchant'}`,
-        fallbackLabel: 'Use PIN',
+        promptMessage: `Authenticate as ${isCustomer ? "Customer" : "Merchant"}`,
+        fallbackLabel: "Use PIN",
       });
 
       if (result.success) {
         if (isCustomer) {
           setCustomerAuthed(true);
-          Alert.alert('Success', 'Customer authenticated');
+          Alert.alert("Success", "Customer authenticated");
         } else {
           setMerchantAuthed(true);
-          Alert.alert('Success', 'Merchant authenticated');
+          Alert.alert("Success", "Merchant authenticated");
         }
       }
     } catch (error) {
-      console.error('Biometric auth error:', error);
+      console.error("Biometric auth error:", error);
     }
   };
 
   const handlePinAuth = async (pin: string, isCustomer: boolean) => {
     if (pin.length < 4) {
-      Alert.alert('Invalid PIN', 'PIN must be at least 4 digits');
+      Alert.alert("Invalid PIN", "PIN must be at least 4 digits");
       return;
     }
 
     // In production, verify PIN against stored hash
     if (isCustomer) {
       setCustomerAuthed(true);
-      Alert.alert('Success', 'Customer authenticated');
+      Alert.alert("Success", "Customer authenticated");
     } else {
       setMerchantAuthed(true);
-      Alert.alert('Success', 'Merchant authenticated');
+      Alert.alert("Success", "Merchant authenticated");
     }
   };
 
   const handleConfirmTrade = async () => {
     if (!customerAuthed || !merchantAuthed) {
-      Alert.alert('Authentication Required', 'Both parties must authenticate');
+      Alert.alert("Authentication Required", "Both parties must authenticate");
       return;
     }
 
@@ -99,12 +99,12 @@ export default function ConfirmTrade() {
       // Generate signatures
       const customerSig = await OfflineTradeService.generateSignature(
         { tradeItems, timestamp: Date.now() },
-        customerPin || 'biometric'
+        customerPin || "biometric",
       );
 
       const merchantSig = await OfflineTradeService.generateSignature(
         { tradeItems, timestamp: Date.now() },
-        merchantPin || 'biometric'
+        merchantPin || "biometric",
       );
 
       // Record trade offline
@@ -115,7 +115,7 @@ export default function ConfirmTrade() {
         merchantName,
         tradeItems,
         customerSig,
-        merchantSig
+        merchantSig,
       );
 
       // Update item ownership locally (optimistic update)
@@ -127,18 +127,21 @@ export default function ConfirmTrade() {
       }
 
       Alert.alert(
-        'Trade Complete!',
+        "Trade Complete!",
         `Successfully traded items worth $${amount}\\n\\nTrade will sync when online.`,
         [
           {
-            text: 'Done',
-            onPress: () => router.replace('/(tabs)/inventory'),
+            text: "Done",
+            onPress: () => router.replace("/(tabs)/home"),
           },
-        ]
+        ],
       );
     } catch (error) {
-      console.error('Trade error:', error);
-      Alert.alert('Trade Failed', 'Failed to complete trade. Please try again.');
+      console.error("Trade error:", error);
+      Alert.alert(
+        "Trade Failed",
+        "Failed to complete trade. Please try again.",
+      );
     } finally {
       setProcessing(false);
     }
@@ -147,7 +150,7 @@ export default function ConfirmTrade() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView>
         <View style={styles.header}>
@@ -194,7 +197,7 @@ export default function ConfirmTrade() {
 
           <View style={styles.authSection}>
             <Text style={styles.sectionTitle}>Authentication</Text>
-            
+
             {/* Customer Authentication */}
             <View style={styles.authCard}>
               <View style={styles.authHeader}>
@@ -204,7 +207,7 @@ export default function ConfirmTrade() {
                   <Ionicons name="checkmark-circle" size={24} color="#34C759" />
                 )}
               </View>
-              
+
               {!customerAuthed && (
                 <>
                   <TouchableOpacity
@@ -214,7 +217,7 @@ export default function ConfirmTrade() {
                     <Ionicons name="finger-print" size={24} color="#007AFF" />
                     <Text style={styles.biometricText}>Use Biometric</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.pinInput}>
                     <TextInput
                       style={styles.pinField}
@@ -245,7 +248,7 @@ export default function ConfirmTrade() {
                   <Ionicons name="checkmark-circle" size={24} color="#34C759" />
                 )}
               </View>
-              
+
               {!merchantAuthed && (
                 <>
                   <TouchableOpacity
@@ -255,7 +258,7 @@ export default function ConfirmTrade() {
                     <Ionicons name="finger-print" size={24} color="#007AFF" />
                     <Text style={styles.biometricText}>Use Biometric</Text>
                   </TouchableOpacity>
-                  
+
                   <View style={styles.pinInput}>
                     <TextInput
                       style={styles.pinField}
@@ -281,7 +284,8 @@ export default function ConfirmTrade() {
           <TouchableOpacity
             style={[
               styles.confirmButton,
-              (!customerAuthed || !merchantAuthed) && styles.confirmButtonDisabled
+              (!customerAuthed || !merchantAuthed) &&
+                styles.confirmButtonDisabled,
             ]}
             onPress={handleConfirmTrade}
             disabled={!customerAuthed || !merchantAuthed || processing}
@@ -304,11 +308,11 @@ export default function ConfirmTrade() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 24,
     paddingTop: 60,
   },
@@ -318,149 +322,149 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     flex: 1,
   },
   content: {
     padding: 24,
   },
   tradeDetails: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: "#F0F8FF",
     padding: 20,
     borderRadius: 12,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     marginBottom: 16,
   },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   detailLabel: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   detailValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
   itemsList: {
     marginBottom: 24,
   },
   itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: "#F8F8F8",
     borderRadius: 8,
     marginBottom: 8,
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     flex: 1,
   },
   itemDetails: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   itemPercentage: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   itemValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontWeight: "600",
+    color: "#007AFF",
   },
   authSection: {
     marginBottom: 24,
   },
   authCard: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: "#F8F8F8",
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
   },
   authHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 16,
   },
   authTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     flex: 1,
   },
   biometricButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: "#007AFF",
     gap: 8,
     marginBottom: 12,
   },
   biometricText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontWeight: "600",
+    color: "#007AFF",
   },
   pinInput: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   pinField: {
     flex: 1,
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     fontSize: 16,
   },
   pinButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 12,
     borderRadius: 8,
-    justifyContent: 'center',
+    justifyContent: "center",
     minWidth: 80,
   },
   pinButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   confirmButton: {
-    flexDirection: 'row',
-    backgroundColor: '#34C759',
+    flexDirection: "row",
+    backgroundColor: "#34C759",
     padding: 18,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
   },
   confirmButtonDisabled: {
-    backgroundColor: '#CCC',
+    backgroundColor: "#CCC",
   },
   confirmButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

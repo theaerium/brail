@@ -34,6 +34,7 @@ class User(BaseModel):
     pin_hash: str  # Hashed PIN
     created_at: datetime = Field(default_factory=datetime.utcnow)
     biometric_enabled: bool = False
+    balance: float = 0.0  # Current account balance
     # Personal Information
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -415,6 +416,30 @@ async def delete_item(item_id: str):
 async def create_transaction(transaction: TransactionCreate):
     transaction_obj = Transaction(**transaction.dict())
     await db.transactions.insert_one(transaction_obj.dict())
+
+    # Update user balance based on transaction type
+    user = await db.users.find_one({"user_id": transaction.user_id})
+    if user:
+        current_balance = user.get("balance", 0.0)
+
+        # Determine balance change based on transaction type
+        if transaction.type == "deposit" or transaction.type == "refund":
+            # Increase balance (money coming in)
+            new_balance = current_balance + transaction.amount
+        elif transaction.type == "payment" or transaction.type == "withdrawal":
+            # Decrease balance (money going out)
+            new_balance = current_balance - transaction.amount
+        else:
+            new_balance = current_balance
+
+        # Update user's balance
+        await db.users.update_one(
+            {"user_id": transaction.user_id},
+            {"$set": {"balance": new_balance}}
+        )
+
+        logger.info(f"Updated balance for user {transaction.user_id}: {current_balance} -> {new_balance} (type: {transaction.type})")
+
     return transaction_obj
 
 @api_router.get("/transactions/user/{user_id}", response_model=List[Transaction])

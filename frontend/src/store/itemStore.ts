@@ -36,17 +36,24 @@ export const useItemStore = create<ItemState>((set, get) => ({
   isLoading: false,
 
   fetchItems: async (userId: string) => {
+    console.log('[ItemStore] Fetching items for user:', userId);
     set({ isLoading: true });
     try {
       if (DEV_BYPASS) {
         const items = await MockAPIService.fetchItems(userId);
+        console.log('[ItemStore] Fetched', items.length, 'items from MockAPI');
         set({ items, isLoading: false });
       } else {
+        console.log('[ItemStore] Calling backend:', `${API_URL}/api/items/user/${userId}`);
         const response = await axios.get(`${API_URL}/api/items/user/${userId}`);
+        console.log('[ItemStore] Backend returned', response.data.length, 'items');
+        console.log('[ItemStore] Items:', response.data.map((i: any) => ({ id: i.item_id, owner: i.owner_id, value: i.value })));
         set({ items: response.data, isLoading: false });
       }
-    } catch (error) {
-      console.error('Failed to fetch items:', error);
+    } catch (error: any) {
+      console.error('[ItemStore] Failed to fetch items:', error);
+      console.error('[ItemStore] Error message:', error.message);
+      console.error('[ItemStore] Error response:', error.response?.data);
       set({ isLoading: false });
     }
   },
