@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
+  Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
@@ -8,17 +9,47 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 
+interface Store {
+  name: string;
+  url: string;
+  icon: string;
+  color: string;
+}
+
+const STORES: Store[] = [
+  { name: 'Other', url: 'https://www.google.com', icon: 'search', color: '#4285F4' },
+  { name: 'Shop', url: 'https://shop.app', icon: 'bag-handle', color: '#5B21B6' },
+  { name: 'Amazon', url: 'https://www.amazon.com', icon: 'logo-amazon', color: '#FF9900' },
+  { name: 'Target', url: 'https://www.target.com', icon: 'radio-button-on', color: '#CC0000' },
+  { name: 'Lululemon', url: 'https://www.lululemon.com', icon: 'shirt', color: '#D31334' },
+  { name: 'Walmart', url: 'https://www.walmart.com', icon: 'apps', color: '#0071CE' },
+];
+
 export default function ShoppingScreen() {
+  const [showWebView, setShowWebView] = useState(false);
   const [url, setUrl] = useState('https://www.google.com');
   const [searchText, setSearchText] = useState('');
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [loading, setLoading] = useState(false);
   const webViewRef = useRef<WebView>(null);
+
+  const handleStorePress = (storeUrl: string) => {
+    setUrl(storeUrl);
+    setSearchText('');
+    setShowWebView(true);
+  };
+
+  const handleBackToStores = () => {
+    setShowWebView(false);
+    setUrl('https://www.google.com');
+    setSearchText('');
+  };
 
   const isValidUrl = (text: string): boolean => {
     // Check if it's a valid URL format
