@@ -331,13 +331,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  storeIconContainer: {
+  storeLogoContainer: {
     width: 80,
     height: 80,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+  },
+  storeLogo: {
+    width: 80,
+    height: 80,
   },
   storeName: {
     fontSize: 16,
