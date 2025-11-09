@@ -18,6 +18,7 @@ interface User {
   email?: string | null;
   phone?: string | null;
   street_address?: string | null;
+  street_address_2?: string | null;
   city?: string | null;
   state?: string | null;
   zip_code?: string | null;

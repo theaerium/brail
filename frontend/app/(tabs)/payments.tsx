@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -31,7 +37,9 @@ export default function PaymentsScreen() {
 
   const [mode, setMode] = useState<"spend" | "receive">("spend");
   const [spendMode, setSpendMode] = useState<"nfc" | "account">("nfc");
-  const [receiveMode, setReceiveMode] = useState<"amount" | "account">("amount");
+  const [receiveMode, setReceiveMode] = useState<"amount" | "account">(
+    "amount",
+  );
   const [amount, setAmount] = useState("");
   const [recipientUsername, setRecipientUsername] = useState("");
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -97,7 +105,9 @@ export default function PaymentsScreen() {
 
     const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-    return decimalPart !== undefined ? `${formatted}.${decimalPart}` : formatted;
+    return decimalPart !== undefined
+      ? `${formatted}.${decimalPart}`
+      : formatted;
   };
 
   const handleDelete = () => {
@@ -113,12 +123,18 @@ export default function PaymentsScreen() {
     const amountNum = parseFloat(cleanAmount || "0");
 
     if (amountNum <= 0) {
-      Alert.alert("Invalid Amount", "Please enter a valid amount greater than 0");
+      Alert.alert(
+        "Invalid Amount",
+        "Please enter a valid amount greater than 0",
+      );
       return;
     }
 
     if (amountNum > 999999) {
-      Alert.alert("Amount Too Large", "Please enter an amount less than $999,999");
+      Alert.alert(
+        "Amount Too Large",
+        "Please enter an amount less than $999,999",
+      );
       return;
     }
 
@@ -146,7 +162,10 @@ export default function PaymentsScreen() {
     }
 
     if (!recipientUsername.trim()) {
-      Alert.alert("Missing Username", "Enter the receiver's username to continue");
+      Alert.alert(
+        "Missing Username",
+        "Enter the receiver's username to continue",
+      );
       return;
     }
 
@@ -157,7 +176,9 @@ export default function PaymentsScreen() {
 
     try {
       setTransferLoading(true);
-      const receiver = await UserService.findByUsername(recipientUsername.trim());
+      const receiver = await UserService.findByUsername(
+        recipientUsername.trim(),
+      );
 
       await updateItem(selectedItem.item_id, { owner_id: receiver.user_id });
 
@@ -206,7 +227,9 @@ export default function PaymentsScreen() {
       console.error("Account transfer failed", error);
       Alert.alert(
         "Transfer Failed",
-        error?.response?.data?.detail || error?.message || "Unable to move the item. Please try again.",
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to move the item. Please try again.",
       );
     } finally {
       setTransferLoading(false);
@@ -215,33 +238,29 @@ export default function PaymentsScreen() {
 
   const renderSpendContent = () => (
     <View style={styles.modeContainer}>
-      <View style={styles.subToggleContainer}>
-        <TouchableOpacity
-          style={[styles.subToggleButton, spendMode === "nfc" && styles.subToggleButtonActive]}
-          onPress={() => setSpendMode("nfc")}
-        >
-          <Text
-            style={[styles.subToggleText, spendMode === "nfc" && styles.subToggleTextActive]}
-          >
-            Tap to Spend
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.subToggleButton, spendMode === "account" && styles.subToggleButtonActive]}
-          onPress={() => setSpendMode("account")}
-        >
-          <Text
-            style={[styles.subToggleText, spendMode === "account" && styles.subToggleTextActive]}
-          >
-            Account Transfer
-          </Text>
-        </TouchableOpacity>
+      <Text style={styles.instructionText}>
+        Hold your phone, card, or item near{"\n"}the terminal you want to spend
+        with
+      </Text>
+      <View style={styles.animationContainer}>
+        <LottieView
+          ref={animationRef}
+          source={require("../../assets/lotties/waiting_animation.json")}
+          autoPlay
+          loop
+          style={styles.animation}
+        />
       </View>
+    </View>
+  );
 
-      {spendMode === "nfc" ? (
+  const renderSpendContentOld = () => (
+    <View style={styles.modeContainer}>
+      {false ? (
         <>
           <Text style={styles.instructionText}>
-            Hold your phone, card, or item near{"\n"}the terminal you want to spend with
+            Hold your phone, card, or item near{"\n"}the terminal you want to
+            spend with
           </Text>
           <View style={styles.animationContainer}>
             <LottieView
@@ -268,12 +287,16 @@ export default function PaymentsScreen() {
             onChangeText={setRecipientUsername}
             autoCapitalize="none"
           />
-          <Text style={styles.transferHint}>Select the item you want to move</Text>
+          <Text style={styles.transferHint}>
+            Select the item you want to move
+          </Text>
           {items.length === 0 ? (
             <View style={styles.emptyItems}>
               <Ionicons name="cube" size={28} color="#666" />
               <Text style={styles.emptyItemsText}>No items yet</Text>
-              <Text style={styles.emptyItemsSubtext}>Deposit an item to enable transfers</Text>
+              <Text style={styles.emptyItemsSubtext}>
+                Deposit an item to enable transfers
+              </Text>
             </View>
           ) : (
             <View style={styles.itemGrid}>
@@ -282,14 +305,23 @@ export default function PaymentsScreen() {
                 return (
                   <TouchableOpacity
                     key={item.item_id}
-                    style={[styles.itemCard, isSelected && styles.itemCardSelected]}
+                    style={[
+                      styles.itemCard,
+                      isSelected && styles.itemCardSelected,
+                    ]}
                     onPress={() =>
-                      setSelectedItemId((prev) => (prev === item.item_id ? "" : item.item_id))
+                      setSelectedItemId((prev) =>
+                        prev === item.item_id ? "" : item.item_id,
+                      )
                     }
                   >
                     <Text style={styles.itemBrand}>{item.brand}</Text>
-                    <Text style={styles.itemSubcategory}>{item.subcategory}</Text>
-                    <Text style={styles.itemValue}>${item.value.toFixed(2)}</Text>
+                    <Text style={styles.itemSubcategory}>
+                      {item.subcategory}
+                    </Text>
+                    <Text style={styles.itemValue}>
+                      ${item.value.toFixed(2)}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -297,7 +329,11 @@ export default function PaymentsScreen() {
           )}
 
           <TouchableOpacity
-            style={[styles.transferButton, (!selectedItem || transferLoading) && styles.transferButtonDisabled]}
+            style={[
+              styles.transferButton,
+              (!selectedItem || transferLoading) &&
+                styles.transferButtonDisabled,
+            ]}
             onPress={handleAccountTransfer}
             disabled={!selectedItem || transferLoading}
           >
@@ -314,30 +350,7 @@ export default function PaymentsScreen() {
 
   const renderReceiveContent = () => (
     <View style={styles.modeContainer}>
-      <View style={styles.subToggleContainer}>
-        <TouchableOpacity
-          style={[styles.subToggleButton, receiveMode === "amount" && styles.subToggleButtonActive]}
-          onPress={() => setReceiveMode("amount")}
-        >
-          <Text
-            style={[styles.subToggleText, receiveMode === "amount" && styles.subToggleTextActive]}
-          >
-            Enter Amount
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.subToggleButton, receiveMode === "account" && styles.subToggleButtonActive]}
-          onPress={() => setReceiveMode("account")}
-        >
-          <Text
-            style={[styles.subToggleText, receiveMode === "account" && styles.subToggleTextActive]}
-          >
-            Account Transfer
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {receiveMode === "amount" ? (
+      {true ? (
         <View style={styles.receiveContent}>
           <Text style={styles.receiveLabel}>Accept payment</Text>
 
@@ -351,8 +364,16 @@ export default function PaymentsScreen() {
               <View key={row} style={styles.keypadRow}>
                 {row.split("").map((char) =>
                   char === "←" ? (
-                    <TouchableOpacity key={char} style={styles.key} onPress={handleDelete}>
-                      <Ionicons name="backspace-outline" size={28} color="#000" />
+                    <TouchableOpacity
+                      key={char}
+                      style={styles.key}
+                      onPress={handleDelete}
+                    >
+                      <Ionicons
+                        name="backspace-outline"
+                        size={28}
+                        color="#000"
+                      />
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -368,11 +389,17 @@ export default function PaymentsScreen() {
             ))}
 
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={handleClear}
+              >
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.continueButton, !amount && styles.continueButtonDisabled]}
+                style={[
+                  styles.continueButton,
+                  !amount && styles.continueButtonDisabled,
+                ]}
                 onPress={handleContinue}
                 disabled={!amount}
               >
@@ -383,14 +410,27 @@ export default function PaymentsScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.receiveTransferContent}>
-          <Text style={styles.receiveLabel}>Share this to receive items instantly</Text>
+          <Text style={styles.receiveLabel}>
+            Share this to receive items instantly
+          </Text>
           {qrCodeUri ? (
             <>
               <Image source={{ uri: qrCodeUri }} style={styles.qrCode} />
-              <Text style={styles.receiveHint}>Scan to open the transfer tab with your username filled in</Text>
-              <TouchableOpacity style={styles.copyLinkButton} onPress={handleCopyTransferLink}>
-                <Ionicons name={linkCopied ? "checkmark" : "copy"} size={18} color="#000" />
-                <Text style={styles.copyLinkText}>{linkCopied ? "Link copied" : "Copy link"}</Text>
+              <Text style={styles.receiveHint}>
+                Scan to open the transfer tab with your username filled in
+              </Text>
+              <TouchableOpacity
+                style={styles.copyLinkButton}
+                onPress={handleCopyTransferLink}
+              >
+                <Ionicons
+                  name={linkCopied ? "checkmark" : "copy"}
+                  size={18}
+                  color="#000"
+                />
+                <Text style={styles.copyLinkText}>
+                  {linkCopied ? "Link copied" : "Copy link"}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.openLinkButton}
@@ -402,7 +442,9 @@ export default function PaymentsScreen() {
           ) : (
             <View style={styles.emptyQr}>
               <Ionicons name="qr-code" size={48} color="#999" />
-              <Text style={styles.emptyQrText}>Sign in to generate your QR code</Text>
+              <Text style={styles.emptyQrText}>
+                Sign in to generate your QR code
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -411,27 +453,53 @@ export default function PaymentsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom", "left", "right"]}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
 
         <View style={styles.toggleContainer}>
           <TouchableOpacity
-            style={[styles.toggleButton, mode === "spend" && styles.toggleButtonActive]}
+            style={[
+              styles.toggleButton,
+              mode === "spend" && styles.toggleButtonActive,
+            ]}
             onPress={() => setMode("spend")}
           >
-            <Text style={[styles.toggleText, mode === "spend" && styles.toggleTextActive]}>Spend</Text>
+            <Text
+              style={[
+                styles.toggleText,
+                mode === "spend" && styles.toggleTextActive,
+              ]}
+            >
+              Spend
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.toggleButton, mode === "receive" && styles.toggleButtonActive]}
+            style={[
+              styles.toggleButton,
+              mode === "receive" && styles.toggleButtonActive,
+            ]}
             onPress={() => setMode("receive")}
           >
-            <Text style={[styles.toggleText, mode === "receive" && styles.toggleTextActive]}>Receive</Text>
+            <Text
+              style={[
+                styles.toggleText,
+                mode === "receive" && styles.toggleTextActive,
+              ]}
+            >
+              Receive
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

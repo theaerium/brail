@@ -168,11 +168,8 @@ class MockAPIService {
 
     return this.ensureMockUser(userData.username, {
       pin_hash: userData.pin_hash || 'mock-pin-hash',
-<<<<<<< HEAD
-=======
       biometric_enabled: false,
       balance: 0.0,
->>>>>>> 661990c (Update nfc payment)
       email: userData.email || 'mock@example.com',
       first_name: userData.first_name || null,
       last_name: userData.last_name || null,
@@ -192,15 +189,6 @@ class MockAPIService {
 
     return this.ensureMockUser(credentials.username, {
       pin_hash: credentials.pin_hash || 'mock-pin-hash',
-<<<<<<< HEAD
-    });
-  }
-
-  async findUserByUsername(username: string): Promise<MockUser> {
-    console.log('[MOCK API] Looking up user by username:', username);
-    await this.delay();
-    return this.ensureMockUser(username);
-=======
       biometric_enabled: false,
       balance: this.mockUserBalance,
       email: 'mock@example.com',
@@ -212,7 +200,7 @@ class MockAPIService {
       state: null,
       zip_code: null,
       country: null,
-    };
+    });
   }
 
   async getUser(userId: string): Promise<any> {
@@ -236,7 +224,6 @@ class MockAPIService {
       zip_code: null,
       country: null,
     };
->>>>>>> 661990c (Update nfc payment)
   }
 
   async createTransaction(transactionData: any): Promise<any> {

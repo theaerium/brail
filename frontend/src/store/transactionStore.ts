@@ -82,22 +82,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         console.log('[TransactionStore] API response:', newTransaction);
       }
 
-<<<<<<< HEAD
-      if (options.silent) {
-        set({ isLoading: false });
-      } else {
-        set((state) => ({
-          transactions: [newTransaction, ...state.transactions.filter((tx) => tx.transaction_id !== newTransaction.transaction_id)],
-          isLoading: false
-        }));
-      }
-=======
       set((state) => ({
         transactions: [newTransaction, ...state.transactions],
         isLoading: false
       }));
       console.log('[TransactionStore] Transaction added to store, total transactions:', get().transactions.length);
->>>>>>> 661990c (Update nfc payment)
       return newTransaction;
     } catch (error: any) {
       console.error('[TransactionStore] Failed to create transaction:', error);

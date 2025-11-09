@@ -7,13 +7,21 @@ import {
   TouchableOpacity,
   RefreshControl,
   SafeAreaView,
+  Modal,
+  Image,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../src/store/authStore";
 import { useItemStore } from "../../src/store/itemStore";
 import { useTransactionStore } from "../../src/store/transactionStore";
-import type { Transaction as TransactionType } from "../../src/store/transactionStore";
+import type {
+  Transaction as TransactionType,
+  SpentItem,
+} from "../../src/store/transactionStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const SHIPPING_LABEL_IMAGE = require("../../assets/images/shipping_label.png");
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -21,6 +29,38 @@ export default function HomeScreen() {
   const { items, fetchItems } = useItemStore();
   const { transactions, fetchTransactions } = useTransactionStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingShipmentItems, setPendingShipmentItems] = useState<SpentItem[]>(
+    [],
+  );
+  const [shippingModalVisible, setShippingModalVisible] = useState(false);
+  const [showShippingLabel, setShowShippingLabel] = useState(false);
+  const lastFetchTimeRef = React.useRef<number>(0);
+
+  const checkPendingShipments = async () => {
+    try {
+      const storedItems = await AsyncStorage.getItem("pendingShipmentItems");
+      if (storedItems) {
+        const items = JSON.parse(storedItems);
+        console.log("[HomeScreen] Found pending shipment items:", items.length);
+        setPendingShipmentItems(items);
+      } else {
+        setPendingShipmentItems([]);
+      }
+    } catch (error) {
+      console.error("[HomeScreen] Failed to load pending shipments:", error);
+    }
+  };
+
+  const clearPendingShipments = async () => {
+    try {
+      await AsyncStorage.removeItem("pendingShipmentItems");
+      setPendingShipmentItems([]);
+      setShippingModalVisible(false);
+      setShowShippingLabel(false);
+    } catch (error) {
+      console.error("[HomeScreen] Failed to clear pending shipments:", error);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -35,10 +75,13 @@ export default function HomeScreen() {
         fetchTransactions(user.user_id);
         console.log("[HomeScreen] Refreshing user data...");
         refreshUser();
+
+        // Check for pending shipment items
+        checkPendingShipments();
       } else {
         console.log("[HomeScreen] No user found");
       }
-    }, [user])
+    }, [user]),
   );
 
   const onRefresh = async () => {
@@ -288,6 +331,87 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Ship Items Notification Banner */}
+      {pendingShipmentItems.length > 0 && (
+        <TouchableOpacity
+          style={styles.shipItemsBanner}
+          onPress={() => setShippingModalVisible(true)}
+        >
+          <View style={styles.shipItemsContent}>
+            <Ionicons name="cube" size={20} color="#F0EC57" />
+            <Text style={styles.shipItemsText}>
+              {pendingShipmentItems.length} item
+              {pendingShipmentItems.length > 1 ? "s" : ""} need shipping
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#F0EC57" />
+        </TouchableOpacity>
+      )}
+
+      {/* Shipping Modal */}
+      <Modal
+        visible={shippingModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShippingModalVisible(false);
+          setShowShippingLabel(false);
+        }}
+      >
+        <View style={styles.shippingModalOverlay}>
+          <View style={styles.shippingModalCard}>
+            <Text style={styles.shippingModalTitle}>Items to ship</Text>
+            <Text style={styles.shippingModalSubtitle}>
+              Send the items you just spent so we can deliver them to the
+              merchant.
+            </Text>
+
+            <ScrollView style={{ maxHeight: 220 }}>
+              {pendingShipmentItems.map((item) => (
+                <View key={item.item_id} style={styles.shippingItemRow}>
+                  <Ionicons name="cube-outline" size={18} color="#000" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.shippingItemLabel}>{item.label}</Text>
+                    <Text style={styles.shippingItemMeta}>
+                      {item.fraction >= 0.999
+                        ? "Full item"
+                        : `${formatFraction(item.fraction)} used`}{" "}
+                      · ${item.amount.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.shippingLabelButton}
+              onPress={() => setShowShippingLabel((prev) => !prev)}
+            >
+              <Text style={styles.shippingLabelButtonText}>
+                {showShippingLabel
+                  ? "Hide shipping label"
+                  : "View shipping label"}
+              </Text>
+            </TouchableOpacity>
+
+            {showShippingLabel && (
+              <Image
+                source={SHIPPING_LABEL_IMAGE}
+                style={styles.shippingLabelImage}
+                resizeMode="contain"
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={clearPendingShipments}
+            >
+              <Text style={styles.modalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -495,5 +619,89 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#000",
+  },
+  shipItemsBanner: {
+    backgroundColor: "#000",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  shipItemsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  shipItemsText: {
+    color: "#F0EC57",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  shippingModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  shippingModalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+  },
+  shippingModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  shippingModalSubtitle: {
+    color: "#555",
+    marginBottom: 16,
+  },
+  shippingItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  shippingItemLabel: {
+    fontWeight: "600",
+    color: "#111",
+  },
+  shippingItemMeta: {
+    color: "#555",
+    fontSize: 13,
+  },
+  shippingLabelButton: {
+    marginTop: 8,
+    backgroundColor: "#000",
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  shippingLabelButtonText: {
+    color: "#F0EC57",
+    fontWeight: "600",
+  },
+  shippingLabelImage: {
+    width: "100%",
+    height: 260,
+    marginTop: 16,
+    borderRadius: 12,
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  modalCloseText: {
+    color: "#F0EC57",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

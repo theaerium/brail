@@ -8,53 +8,52 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: "#000",
-        tabBarInactiveTintColor: "#999",
-        tabBarStyle: {
-          backgroundColor: "#F5F5F5",
-          borderTopWidth: 0,
-          height: Platform.OS === "ios" ? 85 : 65,
-          paddingBottom: Platform.OS === "ios" ? insets.bottom : 8,
-          paddingTop: 8,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-        },
-        headerShown: false,
+      screenOptions={({ route }) => {
+        let iconName: keyof typeof Ionicons.glyphMap = "home";
+        let title = "Home";
+
+        if (route.name === "home") {
+          iconName = "home";
+          title = "Home";
+        } else if (route.name === "payments") {
+          iconName = "wallet";
+          title = "Pay";
+        } else if (route.name === "shopping") {
+          iconName = "bag";
+          title = "Shop";
+        }
+
+        return {
+          title,
+          tabBarActiveTintColor: "#000",
+          tabBarInactiveTintColor: "#999",
+          tabBarStyle: {
+            backgroundColor: "#FFF",
+            borderTopWidth: 1,
+            borderTopColor: "#E5E5E5",
+            height: Platform.OS === "ios" ? 85 : 65,
+            paddingBottom: Platform.OS === "ios" ? insets.bottom : 8,
+            paddingTop: 8,
+            elevation: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+          },
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: "600",
+            marginTop: 4,
+          },
+          tabBarIconStyle: {
+            marginTop: 4,
+          },
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => {
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        };
       }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          title: "Pay",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet" size={size} color={color} />
-          ),
-          tabBarStyle: { display: "none" },
-        }}
-      />
-      <Tabs.Screen
-        name="shopping"
-        options={{
-          title: "Shop",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bag" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    />
   );
 }

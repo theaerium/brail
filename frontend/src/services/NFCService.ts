@@ -1,23 +1,6 @@
 import { NfcManager, NfcTech, Ndef, isNFCAvailable } from './NFCManager';
 import * as Crypto from 'expo-crypto';
 
-// Conditionally import NFC manager only if available
-let NfcManager: any = null;
-let NfcTech: any = null;
-let Ndef: any = null;
-
-try {
-  // Try to import NFC manager (only works in custom dev builds, not Expo Go)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const nfcModule = require('react-native-nfc-manager');
-  NfcManager = nfcModule.default;
-  NfcTech = nfcModule.NfcTech;
-  Ndef = nfcModule.Ndef;
-} catch {
-  // NFC module not available (Expo Go or unsupported platform)
-  console.log('NFC module not available - running in Expo Go or unsupported platform');
-}
-
 export interface ItemNFCData {
   item_id: string;
   owner_id: string;
@@ -114,6 +97,10 @@ class NFCService {
       // Write to tag
       console.log('[NFCService] Writing to NFC tag...');
       await NfcManager.ndefHandler.writeNdefMessage(bytes);
+
+      // Add a small delay to ensure write completes
+      console.log('[NFCService] Waiting for write to complete...');
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('[NFCService] Item tag written successfully!');
     } catch (error: any) {

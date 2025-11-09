@@ -41,6 +41,7 @@ class User(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
@@ -54,6 +55,7 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
@@ -69,6 +71,7 @@ class PersonalInfoUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
