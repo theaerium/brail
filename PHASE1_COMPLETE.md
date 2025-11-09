@@ -247,7 +247,7 @@ curl -X POST "http://localhost:8001/api/items" \
 # Frontend is running via Expo tunnel
 
 # Access the app:
-# - Web: https://screen-update.preview.emergentagent.com
+# - Web: https://app-context-scan.preview.emergentagent.com
 # - Mobile: Scan QR code with Expo Go app
 ```
 
