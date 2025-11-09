@@ -160,8 +160,12 @@ export default function ShoppingScreen() {
                 style={styles.storeCard}
                 onPress={() => handleStorePress(store.url)}
               >
-                <View style={[styles.storeIconContainer, { backgroundColor: store.color }]}>
-                  <Ionicons name={store.icon as any} size={40} color="#FFFFFF" />
+                <View style={styles.storeLogoContainer}>
+                  <Image
+                    source={{ uri: store.logoUrl }}
+                    style={styles.storeLogo}
+                    resizeMode="contain"
+                  />
                 </View>
                 <Text style={styles.storeName}>{store.name}</Text>
               </TouchableOpacity>
