@@ -15,6 +15,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
+import { useAuthStore } from '../../src/store/authStore';
 
 interface Store {
   name: string;
