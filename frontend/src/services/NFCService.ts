@@ -76,6 +76,10 @@ class NFCService {
   }
 
   async writeItemTag(data: ItemNFCData): Promise<void> {
+    if (!this.isAvailable) {
+      throw new Error('NFC is not available in Expo Go. Please use a custom development build or test other features without NFC.');
+    }
+
     try {
       await this.init();
       await NfcManager.requestTechnology(NfcTech.Ndef);
@@ -100,6 +104,10 @@ class NFCService {
   }
 
   async readItemTag(): Promise<ItemNFCData> {
+    if (!this.isAvailable) {
+      throw new Error('NFC is not available in Expo Go. Please use a custom development build or test other features without NFC.');
+    }
+
     try {
       await this.init();
       await NfcManager.requestTechnology(NfcTech.Ndef);
