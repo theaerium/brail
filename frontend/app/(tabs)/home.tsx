@@ -281,8 +281,8 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 40,
     marginBottom: 24,
   },
   actionButton: {
@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -303,9 +303,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   actionText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#000000',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   transactionsSection: {
     backgroundColor: '#FFFFFF',
