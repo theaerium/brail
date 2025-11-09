@@ -127,6 +127,8 @@ export default function ShoppingScreen() {
       country: user.country || 'United States',
       // Payment info (test data)
       cardNumber: '4012888888881881',
+      expiryMonth: '11',
+      expiryYear: '30',
       expiryDate: '11/30',
       cvv: '234',
     };
