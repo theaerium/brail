@@ -34,14 +34,44 @@ class User(BaseModel):
     pin_hash: str  # Hashed PIN
     created_at: datetime = Field(default_factory=datetime.utcnow)
     biometric_enabled: bool = False
+    # Personal Information
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    street_address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
 
 class UserCreate(BaseModel):
     username: str
     pin_hash: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    street_address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
     pin_hash: str
+
+class PersonalInfoUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    street_address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
 
 
 # ============ Item Models ============
