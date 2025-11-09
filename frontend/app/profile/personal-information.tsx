@@ -42,8 +42,12 @@ export default function PersonalInformationScreen() {
   );
 
   const fetchUserData = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found in auth store');
+      return;
+    }
     
+    console.log('Fetching user data for user_id:', user.user_id);
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/api/users/${user.user_id}`);
