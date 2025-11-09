@@ -219,7 +219,21 @@ export default function ShoppingScreen() {
           }
         }
         
-        console.log('Brail autofill completed');
+        // Check for iframes (common in payment gateways)
+        const iframes = document.querySelectorAll('iframe');
+        if (iframes.length > 0) {
+          console.log(\`⚠️  Warning: Found \${iframes.length} iframe(s) on page\`);
+          console.log('⚠️  Payment fields in iframes cannot be autofilled (security restriction)');
+        }
+        
+        console.log(\`✅ Brail autofill completed - Filled \${filledCount} fields\`);
+        
+        if (filledCount === 0) {
+          console.log('❌ No fields were filled. This might be because:');
+          console.log('   1. Fields are in an iframe (Shopify/Stripe payment forms)');
+          console.log('   2. Fields use non-standard names');
+          console.log('   3. Page uses custom input components');
+        }
       })();
       true;
     `;
