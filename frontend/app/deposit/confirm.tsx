@@ -107,7 +107,7 @@ export default function ConfirmDeposit() {
           },
           {
             text: 'Done',
-            onPress: () => router.replace('/(tabs)/inventory'),
+            onPress: () => router.replace('/(tabs)/home'),
           },
         ]
       );
