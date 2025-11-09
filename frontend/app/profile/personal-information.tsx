@@ -70,8 +70,19 @@ export default function PersonalInformationScreen() {
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found when trying to save');
+      Alert.alert('Error', 'User not logged in. Please log in again.');
+      return;
+    }
 
+    if (!user.user_id) {
+      console.log('User object exists but user_id is undefined:', user);
+      Alert.alert('Error', 'User ID not found. Please log in again.');
+      return;
+    }
+
+    console.log('Saving personal info for user_id:', user.user_id);
     setSaving(true);
     try {
       const response = await axios.put(
