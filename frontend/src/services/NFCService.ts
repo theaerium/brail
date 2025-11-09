@@ -1,5 +1,21 @@
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 import * as Crypto from 'expo-crypto';
+import { Platform } from 'react-native';
+
+// Conditionally import NFC manager only if available
+let NfcManager: any = null;
+let NfcTech: any = null;
+let Ndef: any = null;
+
+try {
+  // Try to import NFC manager (only works in custom dev builds, not Expo Go)
+  const nfcModule = require('react-native-nfc-manager');
+  NfcManager = nfcModule.default;
+  NfcTech = nfcModule.NfcTech;
+  Ndef = nfcModule.Ndef;
+} catch (error) {
+  // NFC module not available (Expo Go or unsupported platform)
+  console.log('NFC module not available - running in Expo Go or unsupported platform');
+}
 
 export interface ItemNFCData {
   item_id: string;
@@ -31,8 +47,19 @@ export interface CompactNFCData {
 
 class NFCService {
   private initialized = false;
+  private isAvailable = false;
+
+  constructor() {
+    // Check if NFC module is available
+    this.isAvailable = NfcManager !== null;
+  }
 
   async init() {
+    if (!this.isAvailable) {
+      console.log('NFC not available - requires custom development build');
+      return false;
+    }
+
     if (this.initialized) return true;
     try {
       const supported = await NfcManager.isSupported();
