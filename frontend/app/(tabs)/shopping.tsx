@@ -460,6 +460,16 @@ export default function ShoppingScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Pay with Brail Button - Compact version below nav */}
+        <TouchableOpacity 
+          style={styles.brailButton}
+          onPress={handlePayWithBrail}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="card" size={14} color="#FFFFFF" style={styles.brailIcon} />
+          <Text style={styles.brailButtonText}>Pay with Brail</Text>
+        </TouchableOpacity>
+
         {/* WebView */}
         <View style={styles.webViewContainer}>
           {loading && (
@@ -483,16 +493,6 @@ export default function ShoppingScreen() {
             startInLoadingState={true}
             scalesPageToFit={true}
           />
-          
-          {/* Pay with Brail Button */}
-          <TouchableOpacity 
-            style={styles.brailButton}
-            onPress={handlePayWithBrail}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="card" size={20} color="#FFFFFF" style={styles.brailIcon} />
-            <Text style={styles.brailButtonText}>Pay with Brail</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
