@@ -564,6 +564,7 @@ export default function AcceptPayment() {
       ring2Animation.stop();
       ring3Animation.stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Show NFC payment confirmation screen

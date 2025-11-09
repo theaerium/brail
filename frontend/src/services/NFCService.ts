@@ -1,6 +1,23 @@
 import { NfcManager, NfcTech, Ndef, isNFCAvailable } from './NFCManager';
 import * as Crypto from 'expo-crypto';
 
+// Conditionally import NFC manager only if available
+let NfcManager: any = null;
+let NfcTech: any = null;
+let Ndef: any = null;
+
+try {
+  // Try to import NFC manager (only works in custom dev builds, not Expo Go)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const nfcModule = require('react-native-nfc-manager');
+  NfcManager = nfcModule.default;
+  NfcTech = nfcModule.NfcTech;
+  Ndef = nfcModule.Ndef;
+} catch {
+  // NFC module not available (Expo Go or unsupported platform)
+  console.log('NFC module not available - running in Expo Go or unsupported platform');
+}
+
 export interface ItemNFCData {
   item_id: string;
   owner_id: string;
@@ -31,8 +48,19 @@ export interface CompactNFCData {
 
 class NFCService {
   private initialized = false;
+  private isAvailable = false;
+
+  constructor() {
+    // Check if NFC module is available
+    this.isAvailable = NfcManager !== null;
+  }
 
   async init() {
+    if (!this.isAvailable) {
+      console.log('NFC not available - requires custom development build');
+      return false;
+    }
+
     if (this.initialized) return true;
 
     if (!isNFCAvailable) {
@@ -55,6 +83,10 @@ class NFCService {
   }
 
   async writeItemTag(data: ItemNFCData): Promise<void> {
+    if (!this.isAvailable) {
+      throw new Error('NFC is not available in Expo Go. Please use a custom development build or test other features without NFC.');
+    }
+
     try {
       await this.init();
       await NfcManager.requestTechnology(NfcTech.Ndef);
@@ -79,6 +111,10 @@ class NFCService {
   }
 
   async readItemTag(): Promise<ItemNFCData> {
+    if (!this.isAvailable) {
+      throw new Error('NFC is not available in Expo Go. Please use a custom development build or test other features without NFC.');
+    }
+
     try {
       await this.init();
       await NfcManager.requestTechnology(NfcTech.Ndef);
@@ -154,6 +190,9 @@ class NFCService {
   }
 
   async cancelNFC() {
+    if (!this.isAvailable || !NfcManager) {
+      return;
+    }
     try {
       await NfcManager.cancelTechnologyRequest();
     } catch (error) {
@@ -162,10 +201,18 @@ class NFCService {
   }
 
   cleanup() {
+    if (!this.isAvailable || !NfcManager) {
+      return;
+    }
     if (this.initialized) {
       NfcManager.unregisterTagEvent().catch(() => {});
       this.initialized = false;
     }
+  }
+
+  // Helper method to check if NFC is available
+  isNFCAvailable(): boolean {
+    return this.isAvailable;
   }
 }
 

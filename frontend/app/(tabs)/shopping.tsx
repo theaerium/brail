@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
@@ -8,17 +9,333 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  Image,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
+import { useAuthStore } from '../../src/store/authStore';
+import * as Clipboard from 'expo-clipboard';
+
+interface Store {
+  name: string;
+  url: string;
+  logoUrl?: any;
+  icon: string;
+  color: string;
+}
+
+const STORES: Store[] = [
+  { 
+    name: 'Other', 
+    url: 'https://www.google.com', 
+    icon: 'search', 
+    color: '#4285F4' 
+  },
+  { 
+    name: 'Shop', 
+    url: 'https://shop.app', 
+    logoUrl: require('../../assets/images/shop.png'),
+    icon: 'bag-handle', 
+    color: '#5B21B6' 
+  },
+  { 
+    name: 'Amazon', 
+    url: 'https://www.amazon.com', 
+    logoUrl: require('../../assets/images/amazon.png'),
+    icon: 'logo-amazon', 
+    color: '#FF9900' 
+  },
+  { 
+    name: 'Target', 
+    url: 'https://www.target.com', 
+    logoUrl: require('../../assets/images/target.png'),
+    icon: 'radio-button-on', 
+    color: '#CC0000' 
+  },
+  { 
+    name: 'Lululemon', 
+    url: 'https://www.lululemon.com', 
+    logoUrl: require('../../assets/images/lululemon.png'),
+    icon: 'shirt', 
+    color: '#D31334' 
+  },
+  { 
+    name: 'Motel Margarita', 
+    url: 'https://motelmargarita.com', 
+    logoUrl: require('../../assets/images/motel_margarita.png'),
+    icon: 'shirt', 
+    color: '#000000' 
+  },
+];
+
+const TEST_PAYMENT_DETAILS = {
+  cardNumber: '4012888888881881',
+  expiryMonth: '11',
+  expiryYear: '30',
+  expiryDate: '11/30',
+  cvv: '234',
+};
 
 export default function ShoppingScreen() {
+  const navigation = useNavigation();
+  const { user } = useAuthStore();
+  const [showWebView, setShowWebView] = useState(false);
   const [url, setUrl] = useState('https://www.google.com');
   const [searchText, setSearchText] = useState('');
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [loading, setLoading] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const [isCardModalVisible, setIsCardModalVisible] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cardDetails = TEST_PAYMENT_DETAILS;
+  const cardFieldRows = [
+    { label: 'Card Number', value: cardDetails.cardNumber },
+    { label: 'Expiry Date', value: cardDetails.expiryDate },
+    { label: 'CVV', value: cardDetails.cvv },
+  ];
+
+  // Hide tab bar when in webview, show when in store selection
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: showWebView ? { display: 'none' } : {
+        backgroundColor: '#F5F5F5',
+        borderTopWidth: 0,
+        height: Platform.OS === 'ios' ? 85 : 65,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+        paddingTop: 8,
+        elevation: 0,
+        shadowOpacity: 0,
+      },
+    });
+  }, [showWebView, navigation]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleStorePress = (storeUrl: string) => {
+    setUrl(storeUrl);
+    setSearchText('');
+    setShowWebView(true);
+  };
+
+  const handleBackToStores = () => {
+    setShowWebView(false);
+    setUrl('https://www.google.com');
+    setSearchText('');
+  };
+
+  const buildUserData = () => ({
+    firstName: user?.first_name || '',
+    lastName: user?.last_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.street_address || '',
+    address2: user?.street_address_2 || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    zipCode: user?.zip_code || '',
+    country: user?.country || 'United States',
+    ...cardDetails,
+  });
+
+  const handlePayWithBrail = () => {
+    if (!webViewRef.current || !user) {
+      console.log('WebView or user not available');
+      return;
+    }
+
+    const userData = buildUserData();
+
+    // JavaScript code to inject and autofill forms
+    const autofillScript = `
+      (function() {
+        const userData = ${JSON.stringify(userData)};
+        console.log('🎯 Brail Autofill Started');
+        
+        let filledCount = 0;
+        
+        // Helper function to find and fill input by multiple possible names/ids
+        function fillInput(possibleNames, value, fieldType) {
+          if (!value) return false;
+          
+          for (let name of possibleNames) {
+            // Try by name, id, placeholder, autocomplete, and data attributes
+            let inputs = document.querySelectorAll(\`
+              input[name*="\${name}" i], 
+              input[id*="\${name}" i], 
+              input[placeholder*="\${name}" i],
+              input[autocomplete*="\${name}" i],
+              input[data-*="\${name}" i],
+              input[aria-label*="\${name}" i]
+            \`);
+            
+            for (let input of inputs) {
+              if (input.type !== 'hidden' && input.type !== 'submit' && input.type !== 'button') {
+                // Skip if already filled (unless it's empty)
+                if (input.value && input.value.length > 0) continue;
+                
+                input.value = value;
+                input.focus();
+                
+                // Trigger multiple events to ensure frameworks pick up the change
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('blur', { bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                
+                // For React/Vue apps
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeInputValueSetter.call(input, value);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                filledCount++;
+                console.log(\`✅ Filled \${fieldType}: \${name}\`);
+                return true;
+              }
+            }
+          }
+          console.log(\`❌ Could not find field: \${fieldType}\`);
+          return false;
+        }
+        
+        // Fill personal information
+        fillInput(['firstname', 'first-name', 'fname', 'given-name', 'givenName'], userData.firstName);
+        fillInput(['lastname', 'last-name', 'lname', 'family-name', 'familyName', 'surname'], userData.lastName);
+        fillInput(['email', 'e-mail', 'emailaddress', 'email-address'], userData.email);
+        fillInput(['phone', 'telephone', 'mobile', 'phonenumber', 'phone-number', 'tel'], userData.phone);
+        fillInput(['address', 'street', 'address1', 'streetaddress', 'street-address', 'address-line1'], userData.address);
+        fillInput(['address2', 'address-2', 'address-line2', 'apartment', 'apt', 'suite', 'unit'], userData.address2);
+        fillInput(['city', 'town', 'locality'], userData.city);
+        fillInput(['state', 'province', 'region'], userData.state);
+        fillInput(['zip', 'zipcode', 'postal', 'postcode', 'postalcode', 'postal-code'], userData.zipCode);
+        fillInput(['country'], userData.country);
+        
+        // Fill payment information - try extensive patterns
+        fillInput(['cardnumber', 'card-number', 'ccnumber', 'cc-number', 'creditcard', 'credit-card', 'number', 'card', 'cardNum', 'card_number', 'payment', 'cc_number'], userData.cardNumber, 'Card Number');
+        fillInput(['expiry', 'expiration', 'exp-date', 'expirydate', 'expiration-date', 'cc-exp', 'cardexpiry', 'exp', 'ccexp', 'cc-exp-date'], userData.expiryDate, 'Expiry Date');
+        fillInput(['cvv', 'cvc', 'securitycode', 'security-code', 'cvv2', 'csc', 'verification', 'cvv_number', 'security_code', 'card_cvv'], userData.cvv, 'CVV');
+        
+        // Try to find and fill split expiry fields (MM/YY)
+        fillInput(['expiry-month', 'expirymonth', 'exp-month', 'month', 'mm', 'card-month', 'ccmonth'], userData.expiryMonth, 'Expiry Month');
+        fillInput(['expiry-year', 'expiryyear', 'exp-year', 'year', 'yy', 'yyyy', 'card-year', 'ccyear'], userData.expiryYear, 'Expiry Year');
+        
+        // ADVANCED TECHNIQUE 1: Try to access iframe content (will fail for cross-origin but worth trying)
+        try {
+          const iframes = document.querySelectorAll('iframe');
+          iframes.forEach((iframe, index) => {
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+              if (iframeDoc) {
+                console.log(\`✅ Accessing iframe \${index} (same-origin)\`);
+                
+                // Try to fill fields inside the iframe
+                const iframeInputs = iframeDoc.querySelectorAll('input');
+                iframeInputs.forEach(input => {
+                  const name = (input.name || input.id || input.placeholder || '').toLowerCase();
+                  
+                  if (name.includes('card') || name.includes('number')) {
+                    input.value = userData.cardNumber;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ Filled card in iframe');
+                    filledCount++;
+                  }
+                  if (name.includes('exp') || name.includes('month')) {
+                    input.value = userData.expiryMonth;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    filledCount++;
+                  }
+                  if (name.includes('year')) {
+                    input.value = userData.expiryYear;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    filledCount++;
+                  }
+                  if (name.includes('cvv') || name.includes('cvc') || name.includes('security')) {
+                    input.value = userData.cvv;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ Filled CVV in iframe');
+                    filledCount++;
+                  }
+                });
+              }
+            } catch (e) {
+              // Cross-origin iframe - expected to fail
+              console.log(\`⚠️  Iframe \${index} is cross-origin (protected)\`);
+            }
+          });
+        } catch (error) {
+          console.log('⚠️  Could not access iframes');
+        }
+        
+        // ADVANCED TECHNIQUE 2: Try to use browser autofill by setting autocomplete
+        try {
+          const cardInputs = document.querySelectorAll('input[autocomplete*="cc-number"], input[autocomplete*="card"]');
+          cardInputs.forEach(input => {
+            input.setAttribute('autocomplete', 'cc-number');
+            input.value = userData.cardNumber;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            filledCount++;
+          });
+        } catch (error) {
+          console.log('⚠️  Autocomplete technique failed');
+        }
+        
+        // Also try dropdowns for country
+        const countrySelects = document.querySelectorAll('select[name*="country" i], select[id*="country" i]');
+        for (let select of countrySelects) {
+          for (let option of select.options) {
+            if (option.text.toLowerCase().includes(userData.country.toLowerCase()) || 
+                option.value.toLowerCase().includes(userData.country.toLowerCase())) {
+              select.value = option.value;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+              break;
+            }
+          }
+        }
+        
+        // Check for iframes (common in payment gateways)
+        const iframes = document.querySelectorAll('iframe');
+        if (iframes.length > 0) {
+          console.log(\`⚠️  Warning: Found \${iframes.length} iframe(s) on page\`);
+          console.log('⚠️  Payment fields in iframes cannot be autofilled (security restriction)');
+        }
+        
+        console.log(\`✅ Brail autofill completed - Filled \${filledCount} fields\`);
+        
+        if (filledCount === 0) {
+          console.log('❌ No fields were filled. This might be because:');
+          console.log('   1. Fields are in an iframe (Shopify/Stripe payment forms)');
+          console.log('   2. Fields use non-standard names');
+          console.log('   3. Page uses custom input components');
+        }
+      })();
+      true;
+    `;
+
+    // Inject the script into the webview
+    webViewRef.current.injectJavaScript(autofillScript);
+    setIsCardModalVisible(true);
+    setCopiedField(null);
+  };
+
+  const handleCopyField = async (value: string, fieldLabel: string) => {
+    if (!value) return;
+    await Clipboard.setStringAsync(value);
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current);
+    }
+    setCopiedField(fieldLabel);
+    copyTimeoutRef.current = setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const isValidUrl = (text: string): boolean => {
     // Check if it's a valid URL format
@@ -66,11 +383,48 @@ export default function ShoppingScreen() {
     }
   };
 
-  const handleHome = () => {
-    setUrl('https://www.google.com');
-    setSearchText('');
-  };
 
+  // Show store selection screen
+  if (!showWebView) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Shop</Text>
+          <Text style={styles.headerSubtitle}>Choose a store to browse</Text>
+        </View>
+        
+        <ScrollView 
+          style={styles.storesContainer}
+          contentContainerStyle={styles.storesContent}
+        >
+          <View style={styles.storeGrid}>
+            {STORES.map((store, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.storeCard}
+                onPress={() => handleStorePress(store.url)}
+              >
+                <View style={styles.storeLogoContainer}>
+                  {store.logoUrl ? (
+                    <Image
+                      source={store.logoUrl}
+                      style={styles.storeLogo}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Ionicons name={store.icon as any} size={60} color={store.color} />
+                  )}
+                </View>
+                <Text style={styles.storeName}>{store.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Show WebView
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -136,7 +490,7 @@ export default function ShoppingScreen() {
 
           <TouchableOpacity 
             style={styles.navButton}
-            onPress={handleHome}
+            onPress={handleBackToStores}
           >
             <Ionicons name="home" size={24} color="#007AFF" />
           </TouchableOpacity>
@@ -166,6 +520,65 @@ export default function ShoppingScreen() {
             scalesPageToFit={true}
           />
         </View>
+
+        {/* Pay with Brail Button - Bottom of screen */}
+        <TouchableOpacity 
+          style={styles.brailButton}
+          onPress={handlePayWithBrail}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="card" size={14} color="#FFFFFF" style={styles.brailIcon} />
+          <Text style={styles.brailButtonText}>Pay with Brail</Text>
+        </TouchableOpacity>
+
+        <Modal
+          visible={isCardModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsCardModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.cardModalContainer}>
+              <Text style={styles.modalTitle}>Enter your Brail card details</Text>
+              <Text style={styles.modalSubtitle}>
+                We filled your shipping info automatically. Copy the card values below and paste
+                them into the secure payment fields.
+              </Text>
+
+              {cardFieldRows.map((row) => (
+                <View key={row.label} style={styles.cardFieldRow}>
+                  <View>
+                    <Text style={styles.cardFieldLabel}>{row.label}</Text>
+                    <Text style={styles.cardFieldValue}>{row.value}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.copyButton}
+                    onPress={() => handleCopyField(row.value, row.label)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={copiedField === row.label ? 'checkmark' : 'copy-outline'}
+                      size={16}
+                      color="#FFFFFF"
+                      style={styles.copyIcon}
+                    />
+                    <Text style={styles.copyButtonText}>
+                      {copiedField === row.label ? 'Copied' : 'Copy'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setIsCardModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCloseText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -175,6 +588,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  storesContainer: {
+    flex: 1,
+  },
+  storesContent: {
+    padding: 16,
+  },
+  storeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  storeCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  storeLogoContainer: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  storeLogo: {
+    width: 80,
+    height: 80,
+  },
+  storeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
   },
   searchContainer: {
     backgroundColor: '#FFFFFF',
@@ -239,5 +711,96 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     zIndex: 1,
+  },
+  brailButton: {
+    backgroundColor: '#000000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
+  },
+  brailIcon: {
+    marginRight: 6,
+  },
+  brailButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  cardModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111111',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  cardFieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  cardFieldLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cardFieldValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 4,
+    color: '#111111',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  copyIcon: {
+    marginRight: 2,
+  },
+  modalCloseButton: {
+    backgroundColor: '#111111',
+    paddingVertical: 14,
+    borderRadius: 32,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

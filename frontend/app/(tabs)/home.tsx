@@ -27,7 +27,7 @@ export default function HomeScreen() {
         fetchItems(user.user_id);
         fetchTransactions(user.user_id);
       }
-    }, [user]),
+    }, [user])
   );
 
   const onRefresh = async () => {
