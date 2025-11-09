@@ -20,7 +20,9 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
-  const { username, pinHash } = useLocalSearchParams<{ username: string; pinHash: string }>();
+  const params = useLocalSearchParams<{ username?: string | string[]; pinHash?: string | string[] }>();
+  const registrationUsername = Array.isArray(params.username) ? params.username[0] : params.username;
+  const registrationPinHash = Array.isArray(params.pinHash) ? params.pinHash[0] : params.pinHash;
   const { setUser } = useAuthStore();
   
   const [firstName, setFirstName] = useState('');
@@ -35,7 +37,7 @@ export default function PersonalInfoScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleComplete = async () => {
-    if (!username || !pinHash) {
+    if (!registrationUsername || !registrationPinHash) {
       Alert.alert('Error', 'Missing registration data');
       return;
     }
@@ -44,8 +46,8 @@ export default function PersonalInfoScreen() {
 
     try {
       const response = await axios.post(`${API_URL}/api/users/register`, {
-        username,
-        pin_hash: pinHash,
+        username: registrationUsername,
+        pin_hash: registrationPinHash,
         first_name: firstName || undefined,
         last_name: lastName || undefined,
         email: email || undefined,
@@ -58,7 +60,7 @@ export default function PersonalInfoScreen() {
       });
 
       // Store user
-      await setUser(response.data);
+      await setUser(response.data, registrationPinHash);
 
       Alert.alert(
         'Success!',
@@ -76,34 +78,6 @@ export default function PersonalInfoScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSkip = () => {
-    Alert.alert(
-      'Skip Personal Information?',
-      'You can add this information later from your profile.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Skip',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const response = await axios.post(`${API_URL}/api/users/register`, {
-                username,
-                pin_hash: pinHash,
-              });
-              await setUser(response.data);
-              router.replace('/(tabs)/home');
-            } catch (error) {
-              Alert.alert('Error', 'Could not complete registration');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -125,7 +99,7 @@ export default function PersonalInfoScreen() {
         <View style={styles.content}>
           <Text style={styles.subtitle}>Tell us about yourself</Text>
           <Text style={styles.description}>
-            This information helps us provide better service. You can skip and add it later.
+            This information helps us provide better service. You can always update it later from your profile.
           </Text>
 
           {/* Name Section */}
@@ -253,14 +227,6 @@ export default function PersonalInfoScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={handleSkip}
-            disabled={loading}
-          >
-            <Text style={styles.skipButtonText}>Skip for Now</Text>
-          </TouchableOpacity>
-
           <View style={{ height: 40 }} />
         </View>
       </ScrollView>
@@ -361,14 +327,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  skipButton: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
