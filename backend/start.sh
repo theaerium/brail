@@ -9,5 +9,5 @@ echo "Waiting for MongoDB to start..."
 sleep 3
 
 echo "Starting Backend Server..."
-cd /Users/mdawes/Documents/aerium/brail/backend
+cd "$(dirname "$0")"
 python server.py

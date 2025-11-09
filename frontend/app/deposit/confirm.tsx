@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
 import { useItemStore } from '../../src/store/itemStore';
+import { useTransactionStore } from '../../src/store/transactionStore';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -34,6 +35,7 @@ export default function ConfirmDeposit() {
   const params = useLocalSearchParams();
   const { user } = useAuthStore();
   const { addItem } = useItemStore();
+  const { addLocalTransaction } = useTransactionStore();
   const [photo] = useState(params.photo as string);
   const [analyzing, setAnalyzing] = useState(true);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -42,6 +44,7 @@ export default function ConfirmDeposit() {
 
   useEffect(() => {
     analyzeItem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const analyzeItem = async () => {
@@ -95,6 +98,23 @@ export default function ConfirmDeposit() {
         value: analysis.estimated_value,
         is_fractional: false,
         share_percentage: 1.0,
+      });
+
+      addLocalTransaction({
+        transaction_id: `deposit-${item.item_id}`,
+        user_id: user.user_id,
+        type: 'deposit',
+        amount: item.value,
+        item_id: item.item_id,
+        item_details: {
+          brand: item.brand,
+          subcategory: item.subcategory,
+          category: item.category,
+          condition: item.condition,
+        },
+        status: 'completed',
+        description: `Deposited ${item.brand} ${item.subcategory}`,
+        created_at: new Date().toISOString(),
       });
 
       // Navigate to NFC tagging screen with item data

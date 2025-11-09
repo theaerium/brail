@@ -15,7 +15,6 @@ import { Ionicons } from '@expo/vector-icons';
 export default function CaptureDeposit() {
   const router = useRouter();
   const [photo, setPhoto] = useState<string>('');
-  const [analyzing, setAnalyzing] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

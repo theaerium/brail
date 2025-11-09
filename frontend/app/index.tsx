@@ -21,13 +21,14 @@ export default function Index() {
       setChecking(false);
     };
     checkUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!checking && user) {
       router.replace("/(tabs)/home");
     }
-  }, [checking, user]);
+  }, [checking, user, router]);
 
   if (checking || isLoading) {
     return (

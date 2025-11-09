@@ -12,7 +12,7 @@ from datetime import datetime
 import sys
 
 # Backend URL from environment configuration
-BACKEND_URL = "https://screen-update.preview.emergentagent.com/api"
+BACKEND_URL = "https://08920879-792e-470d-8b63-857cb964855d.preview.emergentagent.com/api"
 
 class NFCTradingAPITester:
     def __init__(self):

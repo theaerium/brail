@@ -76,13 +76,6 @@ export default function MerchantInput() {
     });
   };
 
-  const handleRequestPayment = () => {
-    // Skip amount entry, go directly to NFC waiting screen
-    router.push({
-      pathname: '/payment/accept-payment',
-      params: { amount: '0.00', merchantId: user!.user_id, merchantName: user!.username }
-    });
-  };
 
   const displayAmount = formatAmount(amount || '0');
 

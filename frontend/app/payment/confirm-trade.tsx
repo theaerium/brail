@@ -108,7 +108,7 @@ export default function ConfirmTrade() {
       );
 
       // Record trade offline
-      const trade = await OfflineTradeService.recordTrade(
+      await OfflineTradeService.recordTrade(
         customerId,
         customerName,
         merchantId,
