@@ -183,6 +183,9 @@ class NFCService {
   }
 
   async cancelNFC() {
+    if (!this.isAvailable || !NfcManager) {
+      return;
+    }
     try {
       await NfcManager.cancelTechnologyRequest();
     } catch (error) {
@@ -191,10 +194,18 @@ class NFCService {
   }
 
   cleanup() {
+    if (!this.isAvailable || !NfcManager) {
+      return;
+    }
     if (this.initialized) {
       NfcManager.unregisterTagEvent().catch(() => {});
       this.initialized = false;
     }
+  }
+
+  // Helper method to check if NFC is available
+  isNFCAvailable(): boolean {
+    return this.isAvailable;
   }
 }
 
