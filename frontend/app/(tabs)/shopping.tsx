@@ -202,10 +202,67 @@ export default function ShoppingScreen() {
         fillInput(['cvv', 'cvc', 'securitycode', 'security-code', 'cvv2', 'csc', 'verification', 'cvv_number', 'security_code', 'card_cvv'], userData.cvv, 'CVV');
         
         // Try to find and fill split expiry fields (MM/YY)
-        const expiryParts = userData.expiryDate.split('/');
-        if (expiryParts.length === 2) {
-          fillInput(['expiry-month', 'expirymonth', 'exp-month', 'month', 'mm', 'card-month'], expiryParts[0]);
-          fillInput(['expiry-year', 'expiryyear', 'exp-year', 'year', 'yy', 'yyyy', 'card-year'], expiryParts[1]);
+        fillInput(['expiry-month', 'expirymonth', 'exp-month', 'month', 'mm', 'card-month', 'ccmonth'], userData.expiryMonth, 'Expiry Month');
+        fillInput(['expiry-year', 'expiryyear', 'exp-year', 'year', 'yy', 'yyyy', 'card-year', 'ccyear'], userData.expiryYear, 'Expiry Year');
+        
+        // ADVANCED TECHNIQUE 1: Try to access iframe content (will fail for cross-origin but worth trying)
+        try {
+          const iframes = document.querySelectorAll('iframe');
+          iframes.forEach((iframe, index) => {
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+              if (iframeDoc) {
+                console.log(\`✅ Accessing iframe \${index} (same-origin)\`);
+                
+                // Try to fill fields inside the iframe
+                const iframeInputs = iframeDoc.querySelectorAll('input');
+                iframeInputs.forEach(input => {
+                  const name = (input.name || input.id || input.placeholder || '').toLowerCase();
+                  
+                  if (name.includes('card') || name.includes('number')) {
+                    input.value = userData.cardNumber;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ Filled card in iframe');
+                    filledCount++;
+                  }
+                  if (name.includes('exp') || name.includes('month')) {
+                    input.value = userData.expiryMonth;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    filledCount++;
+                  }
+                  if (name.includes('year')) {
+                    input.value = userData.expiryYear;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    filledCount++;
+                  }
+                  if (name.includes('cvv') || name.includes('cvc') || name.includes('security')) {
+                    input.value = userData.cvv;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ Filled CVV in iframe');
+                    filledCount++;
+                  }
+                });
+              }
+            } catch (e) {
+              // Cross-origin iframe - expected to fail
+              console.log(\`⚠️  Iframe \${index} is cross-origin (protected)\`);
+            }
+          });
+        } catch (error) {
+          console.log('⚠️  Could not access iframes');
+        }
+        
+        // ADVANCED TECHNIQUE 2: Try to use browser autofill by setting autocomplete
+        try {
+          const cardInputs = document.querySelectorAll('input[autocomplete*="cc-number"], input[autocomplete*="card"]');
+          cardInputs.forEach(input => {
+            input.setAttribute('autocomplete', 'cc-number');
+            input.value = userData.cardNumber;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            filledCount++;
+          });
+        } catch (error) {
+          console.log('⚠️  Autocomplete technique failed');
         }
         
         // Also try dropdowns for country
