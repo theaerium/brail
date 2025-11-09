@@ -64,7 +64,7 @@ export default function Login() {
 
     try {
       await login(username, pin);
-      router.replace('/(tabs)/inventory');
+      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     }
