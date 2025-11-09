@@ -17,11 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function Register() {
   const router = useRouter();
-  const { register, isLoading } = useAuthStore();
+  const { hashPin } = useAuthStore();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [showPin, setShowPin] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRegister = async () => {
     if (!username || !pin || !confirmPin) {
@@ -49,14 +50,23 @@ export default function Register() {
       return;
     }
 
-    // Navigate to personal information screen
-    router.push({
-      pathname: '/auth/personal-info',
-      params: {
-        username,
-        pin,
-      },
-    });
+    try {
+      setIsSubmitting(true);
+      const pinHash = await hashPin(pin);
+
+      router.push({
+        pathname: '/auth/personal-info',
+        params: {
+          username,
+          pinHash,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to prepare registration:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,7 +78,7 @@ export default function Register() {
         <View style={styles.content}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/')}
           >
             <Ionicons name="arrow-back" size={24} color="#007AFF" />
           </TouchableOpacity>
@@ -136,9 +146,9 @@ export default function Register() {
             <TouchableOpacity
               style={styles.registerButton}
               onPress={handleRegister}
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.registerButtonText}>Create Account</Text>

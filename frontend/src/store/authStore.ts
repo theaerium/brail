@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import axios from 'axios';
-import React from 'react';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -11,6 +10,15 @@ interface User {
   username: string;
   pin_hash: string;
   biometric_enabled: boolean;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  street_address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  country?: string | null;
 }
 
 interface AuthState {
@@ -22,6 +30,7 @@ interface AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   hashPin: (pin: string) => Promise<string>;
+  setUser: (user: User | null, pinHash?: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -37,6 +46,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return hash;
   },
 
+  setUser: async (user: User | null, pinHash?: string) => {
+    if (user) {
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      if (pinHash) {
+        await AsyncStorage.setItem('pin_hash', pinHash);
+      }
+      set({ user });
+      return;
+    }
+
+    await AsyncStorage.multiRemove(['user', 'pin_hash']);
+    set({ user: null, token: null });
+  },
+
   register: async (username: string, pin: string) => {
     set({ isLoading: true });
     try {
@@ -47,9 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       const user = response.data;
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      await AsyncStorage.setItem('pin_hash', pinHash);
-      set({ user, isLoading: false });
+      await get().setUser(user, pinHash);
+      set({ isLoading: false });
     } catch (error: any) {
       set({ isLoading: false });
       throw new Error(error.response?.data?.detail || 'Registration failed');
@@ -66,9 +88,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       const user = response.data;
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      await AsyncStorage.setItem('pin_hash', pinHash);
-      set({ user, isLoading: false });
+      await get().setUser(user, pinHash);
+      set({ isLoading: false });
     } catch (error: any) {
       set({ isLoading: false });
       throw new Error(error.response?.data?.detail || 'Login failed');
@@ -76,9 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('user');
-    await AsyncStorage.removeItem('pin_hash');
-    set({ user: null, token: null });
+    await get().setUser(null);
   },
 
   checkAuth: async () => {
