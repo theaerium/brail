@@ -19,7 +19,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!checking && user) {
-      router.replace('/(tabs)/inventory');
+      router.replace('/(tabs)/home');
     }
   }, [checking, user]);
 
