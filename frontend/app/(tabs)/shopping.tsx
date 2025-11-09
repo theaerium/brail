@@ -200,15 +200,8 @@ export default function ShoppingScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Back Button & Search Bar */}
+        {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <TouchableOpacity 
-            style={styles.backToStoresButton}
-            onPress={handleBackToStores}
-          >
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
-          </TouchableOpacity>
-          
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
             <TextInput
