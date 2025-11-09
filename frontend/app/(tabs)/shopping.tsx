@@ -214,6 +214,47 @@ export default function ShoppingScreen() {
           </View>
         </View>
 
+        {/* Navigation Controls */}
+        <View style={styles.navigationBar}>
+          <TouchableOpacity 
+            style={[styles.navButton, !canGoBack && styles.navButtonDisabled]}
+            onPress={handleGoBack}
+            disabled={!canGoBack}
+          >
+            <Ionicons 
+              name="arrow-back" 
+              size={24} 
+              color={canGoBack ? '#007AFF' : '#C7C7CC'} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.navButton, !canGoForward && styles.navButtonDisabled]}
+            onPress={handleGoForward}
+            disabled={!canGoForward}
+          >
+            <Ionicons 
+              name="arrow-forward" 
+              size={24} 
+              color={canGoForward ? '#007AFF' : '#C7C7CC'} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={handleRefresh}
+          >
+            <Ionicons name="refresh" size={24} color="#007AFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={handleBackToStores}
+          >
+            <Ionicons name="home" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
         {/* WebView */}
         <View style={styles.webViewContainer}>
           {loading && (
