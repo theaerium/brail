@@ -22,51 +22,50 @@ import * as Clipboard from 'expo-clipboard';
 interface Store {
   name: string;
   url: string;
-  logoUrl: string;
+  logoUrl?: any;
   icon: string;
   color: string;
 }
 
 const STORES: Store[] = [
   { 
-    name: 'Search', 
+    name: 'Other', 
     url: 'https://www.google.com', 
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
     icon: 'search', 
     color: '#4285F4' 
   },
   { 
     name: 'Shop', 
     url: 'https://shop.app', 
-    logoUrl: 'https://cdn.shopify.com/shop-assets/static/shop-app-icon-512x512.png',
+    logoUrl: require('../../assets/images/shop.png'),
     icon: 'bag-handle', 
     color: '#5B21B6' 
   },
   { 
     name: 'Amazon', 
     url: 'https://www.amazon.com', 
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+    logoUrl: require('../../assets/images/amazon.png'),
     icon: 'logo-amazon', 
     color: '#FF9900' 
   },
   { 
     name: 'Target', 
     url: 'https://www.target.com', 
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Target_logo.svg',
+    logoUrl: require('../../assets/images/target.png'),
     icon: 'radio-button-on', 
     color: '#CC0000' 
   },
   { 
     name: 'Lululemon', 
     url: 'https://www.lululemon.com', 
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Lululemon_Athletica_logo.svg',
+    logoUrl: require('../../assets/images/lululemon.png'),
     icon: 'shirt', 
     color: '#D31334' 
   },
   { 
     name: 'Motel Margarita', 
     url: 'https://motelmargarita.com', 
-    logoUrl: 'https://motelmargarita.com/cdn/shop/files/MM_Main_White_7a9f7a3c-ddb8-46ed-bce4-9a3efdf0c9d7.png?v=1736878997&width=300',
+    logoUrl: require('../../assets/images/motel_margarita.png'),
     icon: 'shirt', 
     color: '#000000' 
   },
@@ -406,11 +405,15 @@ export default function ShoppingScreen() {
                 onPress={() => handleStorePress(store.url)}
               >
                 <View style={styles.storeLogoContainer}>
-                  <Image
-                    source={{ uri: store.logoUrl }}
-                    style={styles.storeLogo}
-                    resizeMode="contain"
-                  />
+                  {store.logoUrl ? (
+                    <Image
+                      source={store.logoUrl}
+                      style={styles.storeLogo}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Ionicons name={store.icon as any} size={60} color={store.color} />
+                  )}
                 </View>
                 <Text style={styles.storeName}>{store.name}</Text>
               </TouchableOpacity>
