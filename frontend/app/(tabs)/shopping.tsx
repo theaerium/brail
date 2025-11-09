@@ -108,6 +108,98 @@ export default function ShoppingScreen() {
     setSearchText('');
   };
 
+  const handlePayWithBrail = () => {
+    if (!webViewRef.current || !user) {
+      console.log('WebView or user not available');
+      return;
+    }
+
+    // Prepare user data
+    const userData = {
+      firstName: user.first_name || '',
+      lastName: user.last_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      address: user.street_address || '',
+      city: user.city || '',
+      state: user.state || '',
+      zipCode: user.zip_code || '',
+      country: user.country || 'United States',
+      // Payment info (test data)
+      cardNumber: '4012888888881881',
+      expiryDate: '11/30',
+      cvv: '234',
+    };
+
+    // JavaScript code to inject and autofill forms
+    const autofillScript = `
+      (function() {
+        const userData = ${JSON.stringify(userData)};
+        
+        // Helper function to find and fill input by multiple possible names/ids
+        function fillInput(possibleNames, value) {
+          if (!value) return false;
+          
+          for (let name of possibleNames) {
+            // Try by name
+            let inputs = document.querySelectorAll(\`input[name*="\${name}" i], input[id*="\${name}" i], input[placeholder*="\${name}" i]\`);
+            for (let input of inputs) {
+              if (input.type !== 'hidden' && !input.value) {
+                input.value = value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+        
+        // Fill personal information
+        fillInput(['firstname', 'first-name', 'fname', 'given-name', 'givenName'], userData.firstName);
+        fillInput(['lastname', 'last-name', 'lname', 'family-name', 'familyName', 'surname'], userData.lastName);
+        fillInput(['email', 'e-mail', 'emailaddress', 'email-address'], userData.email);
+        fillInput(['phone', 'telephone', 'mobile', 'phonenumber', 'phone-number', 'tel'], userData.phone);
+        fillInput(['address', 'street', 'address1', 'streetaddress', 'street-address', 'address-line1'], userData.address);
+        fillInput(['city', 'town', 'locality'], userData.city);
+        fillInput(['state', 'province', 'region'], userData.state);
+        fillInput(['zip', 'zipcode', 'postal', 'postcode', 'postalcode', 'postal-code'], userData.zipCode);
+        fillInput(['country'], userData.country);
+        
+        // Fill payment information
+        fillInput(['cardnumber', 'card-number', 'ccnumber', 'cc-number', 'creditcard', 'credit-card', 'number', 'card'], userData.cardNumber);
+        fillInput(['expiry', 'expiration', 'exp-date', 'expirydate', 'expiration-date', 'cc-exp', 'cardexpiry'], userData.expiryDate);
+        fillInput(['cvv', 'cvc', 'securitycode', 'security-code', 'cvv2', 'csc', 'verification'], userData.cvv);
+        
+        // Try to find and fill split expiry fields (MM/YY)
+        const expiryParts = userData.expiryDate.split('/');
+        if (expiryParts.length === 2) {
+          fillInput(['expiry-month', 'expirymonth', 'exp-month', 'month', 'mm', 'card-month'], expiryParts[0]);
+          fillInput(['expiry-year', 'expiryyear', 'exp-year', 'year', 'yy', 'yyyy', 'card-year'], expiryParts[1]);
+        }
+        
+        // Also try dropdowns for country
+        const countrySelects = document.querySelectorAll('select[name*="country" i], select[id*="country" i]');
+        for (let select of countrySelects) {
+          for (let option of select.options) {
+            if (option.text.toLowerCase().includes(userData.country.toLowerCase()) || 
+                option.value.toLowerCase().includes(userData.country.toLowerCase())) {
+              select.value = option.value;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+              break;
+            }
+          }
+        }
+        
+        console.log('Brail autofill completed');
+      })();
+      true;
+    `;
+
+    // Inject the script into the webview
+    webViewRef.current.injectJavaScript(autofillScript);
+  };
+
   const isValidUrl = (text: string): boolean => {
     // Check if it's a valid URL format
     const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
