@@ -49,17 +49,14 @@ export default function Register() {
       return;
     }
 
-    try {
-      await register(username, pin);
-      Alert.alert('Success', 'Account created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => router.replace('/(tabs)/inventory'),
-        },
-      ]);
-    } catch (error: any) {
-      Alert.alert('Registration Failed', error.message);
-    }
+    // Navigate to personal information screen
+    router.push({
+      pathname: '/auth/personal-info',
+      params: {
+        username,
+        pin,
+      },
+    });
   };
 
   return (

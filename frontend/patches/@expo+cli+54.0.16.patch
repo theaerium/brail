@@ -1,0 +1,14 @@
+diff --git a/node_modules/@expo/cli/build/src/start/server/metro/dev-server/createMessageSocket.js b/node_modules/@expo/cli/build/src/start/server/metro/dev-server/createMessageSocket.js
+index 1234567..abcdefg 100644
+--- a/node_modules/@expo/cli/build/src/start/server/metro/dev-server/createMessageSocket.js
++++ b/node_modules/@expo/cli/build/src/start/server/metro/dev-server/createMessageSocket.js
+@@ -28,7 +28,8 @@ const _socketMessages = require("./utils/socketMessages");
+ function createMessagesSocket(options) {
+     const clients = (0, _createSocketMap.createSocketMap)();
+     const broadcast = (0, _createSocketBroadcaster.createBroadcaster)(clients.map);
+-    const server = new (_ws()).WebSocketServer({
++    const ws = _ws();
++    const server = new ws.WebSocketServer({
+         noServer: true
+     });
+     server.on('connection', (socket, req)=>{
