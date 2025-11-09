@@ -61,7 +61,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/profile/personal-information')}
+          >
             <View style={styles.menuIcon}>
               <Ionicons name="person-outline" size={20} color="#007AFF" />
             </View>
