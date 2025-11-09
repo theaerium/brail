@@ -634,8 +634,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
   },
   brailIcon: {
     marginRight: 6,
