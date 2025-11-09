@@ -194,10 +194,10 @@ export default function ShoppingScreen() {
         fillInput(['zip', 'zipcode', 'postal', 'postcode', 'postalcode', 'postal-code'], userData.zipCode);
         fillInput(['country'], userData.country);
         
-        // Fill payment information
-        fillInput(['cardnumber', 'card-number', 'ccnumber', 'cc-number', 'creditcard', 'credit-card', 'number', 'card'], userData.cardNumber);
-        fillInput(['expiry', 'expiration', 'exp-date', 'expirydate', 'expiration-date', 'cc-exp', 'cardexpiry'], userData.expiryDate);
-        fillInput(['cvv', 'cvc', 'securitycode', 'security-code', 'cvv2', 'csc', 'verification'], userData.cvv);
+        // Fill payment information - try extensive patterns
+        fillInput(['cardnumber', 'card-number', 'ccnumber', 'cc-number', 'creditcard', 'credit-card', 'number', 'card', 'cardNum', 'card_number', 'payment', 'cc_number'], userData.cardNumber, 'Card Number');
+        fillInput(['expiry', 'expiration', 'exp-date', 'expirydate', 'expiration-date', 'cc-exp', 'cardexpiry', 'exp', 'ccexp', 'cc-exp-date'], userData.expiryDate, 'Expiry Date');
+        fillInput(['cvv', 'cvc', 'securitycode', 'security-code', 'cvv2', 'csc', 'verification', 'cvv_number', 'security_code', 'card_cvv'], userData.cvv, 'CVV');
         
         // Try to find and fill split expiry fields (MM/YY)
         const expiryParts = userData.expiryDate.split('/');
