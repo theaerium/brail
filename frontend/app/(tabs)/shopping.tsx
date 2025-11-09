@@ -135,23 +135,51 @@ export default function ShoppingScreen() {
     const autofillScript = `
       (function() {
         const userData = ${JSON.stringify(userData)};
+        console.log('🎯 Brail Autofill Started');
+        
+        let filledCount = 0;
         
         // Helper function to find and fill input by multiple possible names/ids
-        function fillInput(possibleNames, value) {
+        function fillInput(possibleNames, value, fieldType) {
           if (!value) return false;
           
           for (let name of possibleNames) {
-            // Try by name
-            let inputs = document.querySelectorAll(\`input[name*="\${name}" i], input[id*="\${name}" i], input[placeholder*="\${name}" i]\`);
+            // Try by name, id, placeholder, autocomplete, and data attributes
+            let inputs = document.querySelectorAll(\`
+              input[name*="\${name}" i], 
+              input[id*="\${name}" i], 
+              input[placeholder*="\${name}" i],
+              input[autocomplete*="\${name}" i],
+              input[data-*="\${name}" i],
+              input[aria-label*="\${name}" i]
+            \`);
+            
             for (let input of inputs) {
-              if (input.type !== 'hidden' && !input.value) {
+              if (input.type !== 'hidden' && input.type !== 'submit' && input.type !== 'button') {
+                // Skip if already filled (unless it's empty)
+                if (input.value && input.value.length > 0) continue;
+                
                 input.value = value;
+                input.focus();
+                
+                // Trigger multiple events to ensure frameworks pick up the change
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('blur', { bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                
+                // For React/Vue apps
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeInputValueSetter.call(input, value);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                filledCount++;
+                console.log(\`✅ Filled \${fieldType}: \${name}\`);
                 return true;
               }
             }
           }
+          console.log(\`❌ Could not find field: \${fieldType}\`);
           return false;
         }
         
