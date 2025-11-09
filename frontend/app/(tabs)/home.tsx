@@ -113,9 +113,9 @@ export default function HomeScreen() {
             onPress={() => router.push('/(tabs)/shopping')}
           >
             <View style={styles.actionIcon}>
-              <Ionicons name="card-outline" size={24} color="#007AFF" />
+              <Ionicons name="basket-outline" size={24} color="#007AFF" />
             </View>
-            <Text style={styles.actionText}>Spend</Text>
+            <Text style={styles.actionText}>Shop</Text>
           </TouchableOpacity>
         </View>
 
