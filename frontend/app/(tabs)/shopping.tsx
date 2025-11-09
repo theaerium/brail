@@ -102,14 +102,54 @@ export default function ShoppingScreen() {
     setSearchText('');
   };
 
+  // Show store selection screen
+  if (!showWebView) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Shop</Text>
+          <Text style={styles.headerSubtitle}>Choose a store to browse</Text>
+        </View>
+        
+        <ScrollView 
+          style={styles.storesContainer}
+          contentContainerStyle={styles.storesContent}
+        >
+          <View style={styles.storeGrid}>
+            {STORES.map((store, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.storeCard}
+                onPress={() => handleStorePress(store.url)}
+              >
+                <View style={[styles.storeIconContainer, { backgroundColor: store.color }]}>
+                  <Ionicons name={store.icon as any} size={40} color="#FFFFFF" />
+                </View>
+                <Text style={styles.storeName}>{store.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Show WebView
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Search Bar */}
+        {/* Back Button & Search Bar */}
         <View style={styles.searchContainer}>
+          <TouchableOpacity 
+            style={styles.backToStoresButton}
+            onPress={handleBackToStores}
+          >
+            <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          </TouchableOpacity>
+          
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
             <TextInput
