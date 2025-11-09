@@ -382,6 +382,16 @@ export default function ShoppingScreen() {
             startInLoadingState={true}
             scalesPageToFit={true}
           />
+          
+          {/* Pay with Brail Button */}
+          <TouchableOpacity 
+            style={styles.brailButton}
+            onPress={handlePayWithBrail}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="card" size={20} color="#FFFFFF" style={styles.brailIcon} />
+            <Text style={styles.brailButtonText}>Pay with Brail</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
