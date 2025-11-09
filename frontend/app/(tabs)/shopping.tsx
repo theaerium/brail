@@ -13,7 +13,7 @@ export default function ShoppingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Spend</Text>
+        <Text style={styles.headerTitle}>Shop</Text>
         <TouchableOpacity style={styles.cartButton}>
           <Ionicons name="cart-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
@@ -22,14 +22,14 @@ export default function ShoppingScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.comingSoon}>
           <View style={styles.iconContainer}>
-            <Ionicons name="card-outline" size={80} color="#007AFF" />
+            <Ionicons name="basket" size={80} color="#007AFF" />
           </View>
           <Text style={styles.comingSoonTitle}>Coming Soon</Text>
           <Text style={styles.comingSoonText}>
-            Spend feature will be available here
+            Shopping feature will be available here
           </Text>
           <Text style={styles.comingSoonSubtext}>
-            Browse and purchase items using your balance
+            Browse and purchase items from the marketplace
           </Text>
         </View>
       </ScrollView>
