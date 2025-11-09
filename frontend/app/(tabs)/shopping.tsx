@@ -72,6 +72,7 @@ const STORES: Store[] = [
 
 export default function ShoppingScreen() {
   const navigation = useNavigation();
+  const { user } = useAuthStore();
   const [showWebView, setShowWebView] = useState(false);
   const [url, setUrl] = useState('https://www.google.com');
   const [searchText, setSearchText] = useState('');
