@@ -30,6 +30,7 @@ export default function PersonalInfoScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
+  const [streetAddress2, setStreetAddress2] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
@@ -53,6 +54,7 @@ export default function PersonalInfoScreen() {
         email: email || undefined,
         phone: phone || undefined,
         street_address: streetAddress || undefined,
+        street_address_2: streetAddress2 || undefined,
         city: city || undefined,
         state: state || undefined,
         zip_code: zipCode || undefined,
@@ -163,6 +165,15 @@ export default function PersonalInfoScreen() {
                 placeholder="Street Address"
                 value={streetAddress}
                 onChangeText={setStreetAddress}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Ionicons name="home-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Apt, Suite, etc. (optional)"
+                value={streetAddress2}
+                onChangeText={setStreetAddress2}
               />
             </View>
             <View style={styles.row}>

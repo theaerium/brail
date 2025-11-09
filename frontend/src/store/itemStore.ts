@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+console.log('🔍 Items API_URL:', API_URL);
 
 interface Item {
   item_id: string;

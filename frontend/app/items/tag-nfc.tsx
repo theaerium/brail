@@ -91,7 +91,7 @@ export default function TagNFC() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Development Build Required</Text>
                 <Text style={styles.infoText}>
-                  NFC functionality requires a development build. In Expo Go, we'll simulate the NFC tagging process.
+                  NFC functionality requires a development build. In Expo Go, we&apos;ll simulate the NFC tagging process.
                 </Text>
               </View>
             </View>
@@ -100,8 +100,8 @@ export default function TagNFC() {
               <Text style={styles.instructionsTitle}>How to Tag (Real Device):</Text>
               <Text style={styles.instructionsText}>
                 1. Get NTAG215 NFC stickers ($0.25 each){'\n'}
-                2. Place sticker on your item's label{'\n'}
-                3. Tap "Write to NFC Tag" below{'\n'}
+                2. Place sticker on your item&apos;s label{'\n'}
+                3. Tap &quot;Write to NFC Tag&quot; below{'\n'}
                 4. Hold phone near the sticker{'\n'}
                 5. Wait for confirmation
               </Text>

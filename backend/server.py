@@ -40,6 +40,7 @@ class User(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
@@ -53,6 +54,7 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
@@ -68,6 +70,7 @@ class PersonalInfoUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     street_address: Optional[str] = None
+    street_address_2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
@@ -151,9 +154,9 @@ async def register_user(user: UserCreate):
     existing = await db.users.find_one({"username": user.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
-    
-    user_obj = User(**user.dict())
-    await db.users.insert_one(user_obj.dict())
+
+    user_obj = User(**user.model_dump())
+    await db.users.insert_one(user_obj.model_dump())
     return user_obj
 
 @api_router.post("/users/login")
@@ -162,10 +165,10 @@ async def login_user(credentials: UserLogin):
         "username": credentials.username,
         "pin_hash": credentials.pin_hash
     })
-    
+
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
     return User(**user)
 
 @api_router.get("/users/{user_id}", response_model=User)
@@ -181,19 +184,19 @@ async def update_personal_info(user_id: str, personal_info: PersonalInfoUpdate):
     user = await db.users.find_one({"user_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Prepare update data (only include non-None values)
     update_data = {k: v for k, v in personal_info.dict().items() if v is not None}
-    
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No data provided to update")
-    
+
     # Update user
     await db.users.update_one(
         {"user_id": user_id},
         {"$set": update_data}
     )
-    
+
     # Return updated user
     updated_user = await db.users.find_one({"user_id": user_id})
     return User(**updated_user)
@@ -211,25 +214,21 @@ async def analyze_item_for_deposit(request: DepositAnalysisRequest):
     - Estimated market value
     """
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-        
+        from openai import AsyncOpenAI
+
         # Get API key from environment
-        api_key = os.getenv("EMERGENT_LLM_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="LLM API key not configured")
-        
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+
         # Clean base64 string (remove data:image prefix if present)
         image_base64 = request.image_base64
         if "base64," in image_base64:
             image_base64 = image_base64.split("base64,")[1]
-        
-        # Create AI chat instance
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"deposit-{uuid.uuid4()}",
-            system_message="You are an expert item appraiser and identifier. Analyze images of physical items and provide accurate details."
-        ).with_model("openai", "gpt-4o")
-        
+
+        # Create OpenAI client
+        client = AsyncOpenAI(api_key=api_key)
+
         # Create analysis prompt
         prompt = """Analyze this item image and provide detailed information in the following format:
 
@@ -248,22 +247,38 @@ Important guidelines:
 - Choose the most specific category and subcategory that fits
 - Provide accurate, honest assessments"""
 
-        # Create image content
-        image_content = ImageContent(image_base64=image_base64)
-        
-        # Send message with image
-        user_message = UserMessage(
-            text=prompt,
-            file_contents=[image_content]
-        )
-        
         logger.info("Sending image to AI for analysis...")
-        response_text = await chat.send_message(user_message)
+
+        # Call OpenAI API with vision
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert item appraiser and identifier. Analyze images of physical items and provide accurate details."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=500
+        )
+
+        response_text = response.choices[0].message.content
         logger.info(f"AI Response: {response_text}")
-        
+
         # Parse the structured response
         parsed_data = {}
-        
+
         # Extract fields using regex
         name_match = re.search(r'NAME:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
         desc_match = re.search(r'DESCRIPTION:\s*(.+?)(?:\n(?:CATEGORY|SUBCATEGORY|BRAND|CONDITION|VALUE):|$)', response_text, re.IGNORECASE | re.DOTALL)
@@ -272,7 +287,7 @@ Important guidelines:
         brand_match = re.search(r'BRAND:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
         condition_match = re.search(r'CONDITION:\s*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
         value_match = re.search(r'VALUE:\s*\$?([0-9]+\.?[0-9]*)', response_text, re.IGNORECASE)
-        
+
         # Assign values with fallbacks
         parsed_data['name'] = name_match.group(1).strip() if name_match else "Unknown Item"
         parsed_data['description'] = desc_match.group(1).strip() if desc_match else "No description available"
@@ -281,21 +296,21 @@ Important guidelines:
         parsed_data['brand'] = brand_match.group(1).strip() if brand_match else "Generic"
         parsed_data['condition'] = condition_match.group(1).strip().lower() if condition_match else "good"
         parsed_data['estimated_value'] = float(value_match.group(1)) if value_match else 10.0
-        
+
         # Ensure condition is valid
         valid_conditions = ["new", "excellent", "good", "fair", "poor"]
         if parsed_data['condition'] not in valid_conditions:
             parsed_data['condition'] = "good"
-        
+
         logger.info(f"Parsed data: {parsed_data}")
-        
+
         return DepositAnalysisResponse(**parsed_data)
-        
+
     except Exception as e:
         logger.error(f"AI Analysis failed: {str(e)}")
         # Provide fallback response
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"AI analysis failed: {str(e)}. Please try again or add the item manually."
         )
 
@@ -324,15 +339,15 @@ async def update_item(item_id: str, update: ItemUpdate):
     item = await db.items.find_one({"item_id": item_id})
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    
+
     update_data = update.dict(exclude_unset=True)
     update_data["updated_at"] = datetime.utcnow()
-    
+
     await db.items.update_one(
         {"item_id": item_id},
         {"$set": update_data}
     )
-    
+
     updated_item = await db.items.find_one({"item_id": item_id})
     return Item(**updated_item)
 
@@ -348,7 +363,7 @@ async def delete_item(item_id: str):
 @api_router.post("/trades", response_model=Trade)
 async def create_trade(trade: TradeCreate):
     trade_obj = Trade(**trade.dict())
-    
+
     # Update item ownership
     for item in trade.items:
         await db.items.update_one(
@@ -359,7 +374,7 @@ async def create_trade(trade: TradeCreate):
                 "updated_at": datetime.utcnow()
             }}
         )
-    
+
     await db.trades.insert_one(trade_obj.dict())
     return trade_obj
 
@@ -374,12 +389,12 @@ async def get_user_trades(user_id: str):
 async def sync_offline_trades(trades: List[TradeCreate]):
     synced = []
     failed = []
-    
+
     for trade_data in trades:
         try:
             trade_obj = Trade(**trade_data.dict())
             await db.trades.insert_one(trade_obj.dict())
-            
+
             # Update item ownership
             for item in trade_obj.items:
                 await db.items.update_one(
@@ -389,11 +404,11 @@ async def sync_offline_trades(trades: List[TradeCreate]):
                         "updated_at": datetime.utcnow()
                     }}
                 )
-            
+
             synced.append(trade_obj.trade_id)
         except Exception as e:
             failed.append({"error": str(e)})
-    
+
     return {"synced": len(synced), "failed": len(failed), "synced_ids": synced}
 
 
@@ -401,7 +416,7 @@ async def sync_offline_trades(trades: List[TradeCreate]):
 @api_router.post("/valuations/mock")
 async def get_mock_valuation(data: dict):
     """Mock valuation based on category, brand, and condition"""
-    
+
     # Mock valuation table
     VALUATIONS = {
         "clothing": {
@@ -426,7 +441,7 @@ async def get_mock_valuation(data: dict):
             "laptop": {"Apple": 1200, "Dell": 800, "Generic": 400}
         }
     }
-    
+
     CONDITION_MULTIPLIERS = {
         "new": 1.0,
         "excellent": 0.9,
@@ -434,12 +449,12 @@ async def get_mock_valuation(data: dict):
         "fair": 0.5,
         "poor": 0.3
     }
-    
+
     category = data.get("category", "")
     subcategory = data.get("subcategory", "")
     brand = data.get("brand", "Generic")
     condition = data.get("condition", "good")
-    
+
     # Get base value
     base_value = 10  # default
     if category in VALUATIONS:
@@ -448,11 +463,11 @@ async def get_mock_valuation(data: dict):
                 base_value = VALUATIONS[category][subcategory][brand]
             else:
                 base_value = VALUATIONS[category][subcategory].get("Generic", 10)
-    
+
     # Apply condition multiplier
     multiplier = CONDITION_MULTIPLIERS.get(condition, 0.7)
     final_value = round(base_value * multiplier, 2)
-    
+
     return {
         "value": final_value,
         "currency": "USD",
@@ -482,3 +497,8 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8002)

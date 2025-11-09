@@ -28,6 +28,7 @@ export default function PersonalInformationScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
+  const [streetAddress2, setStreetAddress2] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
@@ -38,6 +39,7 @@ export default function PersonalInformationScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchUserData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
@@ -58,6 +60,7 @@ export default function PersonalInformationScreen() {
       setEmail(userData.email || '');
       setPhone(userData.phone || '');
       setStreetAddress(userData.street_address || '');
+      setStreetAddress2(userData.street_address_2 || '');
       setCity(userData.city || '');
       setState(userData.state || '');
       setZipCode(userData.zip_code || '');
@@ -93,6 +96,7 @@ export default function PersonalInformationScreen() {
           email: email || undefined,
           phone: phone || undefined,
           street_address: streetAddress || undefined,
+          street_address_2: streetAddress2 || undefined,
           city: city || undefined,
           state: state || undefined,
           zip_code: zipCode || undefined,
@@ -206,6 +210,15 @@ export default function PersonalInformationScreen() {
                   placeholder="Street Address"
                   value={streetAddress}
                   onChangeText={setStreetAddress}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Ionicons name="home-outline" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Apt, Suite, etc. (optional)"
+                  value={streetAddress2}
+                  onChangeText={setStreetAddress2}
                 />
               </View>
               <View style={styles.row}>

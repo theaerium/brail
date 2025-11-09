@@ -121,7 +121,7 @@ export default function TagNFCDeposit() {
                     <Text style={styles.stepNumberText}>3</Text>
                   </View>
                   <Text style={styles.stepText}>
-                    Tap "Write to NFC Tag" below
+                    Tap &quot;Write to NFC Tag&quot; below
                   </Text>
                 </View>
                 <View style={styles.instructionStep}>
@@ -137,9 +137,9 @@ export default function TagNFCDeposit() {
               {/* Development Build Warning */}
               <View style={styles.warningBox}>
                 <Ionicons name="code-slash" size={20} color="#856404" />
-                <Text style={styles.warningText}>
-                  <Text style={styles.warningBold}>Development Build Required:</Text> NFC functionality requires a development build. In Expo Go, we'll simulate the tagging process.
-                </Text>
+              <Text style={styles.warningText}>
+                <Text style={styles.warningBold}>Development Build Required:</Text> NFC functionality requires a development build. In Expo Go, we&apos;ll simulate the tagging process.
+              </Text>
               </View>
 
               {/* NFC Data Preview */}

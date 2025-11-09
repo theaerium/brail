@@ -95,7 +95,7 @@ export default function AddItem() {
         condition,
       });
       setEstimatedValue(result.value);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to calculate value');
     } finally {
       setCalculating(false);
@@ -145,7 +145,7 @@ export default function AddItem() {
           },
         ]
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to add item');
     }
   };

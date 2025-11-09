@@ -42,6 +42,7 @@ export default function ConfirmDeposit() {
 
   useEffect(() => {
     analyzeItem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const analyzeItem = async () => {

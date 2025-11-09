@@ -23,6 +23,7 @@ export default function CreateWallet() {
     return () => {
       NFCService.cleanup();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkNFC = async () => {
@@ -134,7 +135,7 @@ export default function CreateWallet() {
               <Text style={styles.instructionsTitle}>Instructions:</Text>
               <Text style={styles.instructionsText}>
                 1. Get an NFC card (NTAG215 recommended){' \n'}
-                2. Tap "Create Wallet Card" button{' \n'}
+                2. Tap &quot;Create Wallet Card&quot; button{' \n'}
                 3. Hold your phone near the card{' \n'}
                 4. Wait for confirmation
               </Text>

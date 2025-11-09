@@ -11,11 +11,13 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
+import * as Clipboard from 'expo-clipboard';
 
 interface Store {
   name: string;
@@ -27,9 +29,9 @@ interface Store {
 
 const STORES: Store[] = [
   { 
-    name: 'Other', 
+    name: 'Search', 
     url: 'https://www.google.com', 
-    logoUrl: 'https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
     icon: 'search', 
     color: '#4285F4' 
   },
@@ -62,13 +64,21 @@ const STORES: Store[] = [
     color: '#D31334' 
   },
   { 
-    name: 'Walmart', 
-    url: 'https://www.walmart.com', 
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Walmart_logo.svg',
-    icon: 'apps', 
-    color: '#0071CE' 
+    name: 'Motel Margarita', 
+    url: 'https://motelmargarita.com', 
+    logoUrl: 'https://motelmargarita.com/cdn/shop/files/MM_Main_White_7a9f7a3c-ddb8-46ed-bce4-9a3efdf0c9d7.png?v=1736878997&width=300',
+    icon: 'shirt', 
+    color: '#000000' 
   },
 ];
+
+const TEST_PAYMENT_DETAILS = {
+  cardNumber: '4012888888881881',
+  expiryMonth: '11',
+  expiryYear: '30',
+  expiryDate: '11/30',
+  cvv: '234',
+};
 
 export default function ShoppingScreen() {
   const navigation = useNavigation();
@@ -80,6 +90,15 @@ export default function ShoppingScreen() {
   const [canGoForward, setCanGoForward] = useState(false);
   const [loading, setLoading] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const [isCardModalVisible, setIsCardModalVisible] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cardDetails = TEST_PAYMENT_DETAILS;
+  const cardFieldRows = [
+    { label: 'Card Number', value: cardDetails.cardNumber },
+    { label: 'Expiry Date', value: cardDetails.expiryDate },
+    { label: 'CVV', value: cardDetails.cvv },
+  ];
 
   // Hide tab bar when in webview, show when in store selection
   useEffect(() => {
@@ -96,6 +115,14 @@ export default function ShoppingScreen() {
     });
   }, [showWebView, navigation]);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleStorePress = (storeUrl: string) => {
     setUrl(storeUrl);
     setSearchText('');
@@ -108,30 +135,27 @@ export default function ShoppingScreen() {
     setSearchText('');
   };
 
+  const buildUserData = () => ({
+    firstName: user?.first_name || '',
+    lastName: user?.last_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.street_address || '',
+    address2: user?.street_address_2 || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    zipCode: user?.zip_code || '',
+    country: user?.country || 'United States',
+    ...cardDetails,
+  });
+
   const handlePayWithBrail = () => {
     if (!webViewRef.current || !user) {
       console.log('WebView or user not available');
       return;
     }
 
-    // Prepare user data
-    const userData = {
-      firstName: user.first_name || '',
-      lastName: user.last_name || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      address: user.street_address || '',
-      city: user.city || '',
-      state: user.state || '',
-      zipCode: user.zip_code || '',
-      country: user.country || 'United States',
-      // Payment info (test data)
-      cardNumber: '4012888888881881',
-      expiryMonth: '11',
-      expiryYear: '30',
-      expiryDate: '11/30',
-      cvv: '234',
-    };
+    const userData = buildUserData();
 
     // JavaScript code to inject and autofill forms
     const autofillScript = `
@@ -191,6 +215,7 @@ export default function ShoppingScreen() {
         fillInput(['email', 'e-mail', 'emailaddress', 'email-address'], userData.email);
         fillInput(['phone', 'telephone', 'mobile', 'phonenumber', 'phone-number', 'tel'], userData.phone);
         fillInput(['address', 'street', 'address1', 'streetaddress', 'street-address', 'address-line1'], userData.address);
+        fillInput(['address2', 'address-2', 'address-line2', 'apartment', 'apt', 'suite', 'unit'], userData.address2);
         fillInput(['city', 'town', 'locality'], userData.city);
         fillInput(['state', 'province', 'region'], userData.state);
         fillInput(['zip', 'zipcode', 'postal', 'postcode', 'postalcode', 'postal-code'], userData.zipCode);
@@ -299,6 +324,18 @@ export default function ShoppingScreen() {
 
     // Inject the script into the webview
     webViewRef.current.injectJavaScript(autofillScript);
+    setIsCardModalVisible(true);
+    setCopiedField(null);
+  };
+
+  const handleCopyField = async (value: string, fieldLabel: string) => {
+    if (!value) return;
+    await Clipboard.setStringAsync(value);
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current);
+    }
+    setCopiedField(fieldLabel);
+    copyTimeoutRef.current = setTimeout(() => setCopiedField(null), 2000);
   };
 
   const isValidUrl = (text: string): boolean => {
@@ -347,10 +384,6 @@ export default function ShoppingScreen() {
     }
   };
 
-  const handleHome = () => {
-    setUrl('https://www.google.com');
-    setSearchText('');
-  };
 
   // Show store selection screen
   if (!showWebView) {
@@ -494,6 +527,55 @@ export default function ShoppingScreen() {
           <Ionicons name="card" size={14} color="#FFFFFF" style={styles.brailIcon} />
           <Text style={styles.brailButtonText}>Pay with Brail</Text>
         </TouchableOpacity>
+
+        <Modal
+          visible={isCardModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsCardModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.cardModalContainer}>
+              <Text style={styles.modalTitle}>Enter your Brail card details</Text>
+              <Text style={styles.modalSubtitle}>
+                We filled your shipping info automatically. Copy the card values below and paste
+                them into the secure payment fields.
+              </Text>
+
+              {cardFieldRows.map((row) => (
+                <View key={row.label} style={styles.cardFieldRow}>
+                  <View>
+                    <Text style={styles.cardFieldLabel}>{row.label}</Text>
+                    <Text style={styles.cardFieldValue}>{row.value}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.copyButton}
+                    onPress={() => handleCopyField(row.value, row.label)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={copiedField === row.label ? 'checkmark' : 'copy-outline'}
+                      size={16}
+                      color="#FFFFFF"
+                      style={styles.copyIcon}
+                    />
+                    <Text style={styles.copyButtonText}>
+                      {copiedField === row.label ? 'Copied' : 'Copy'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setIsCardModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCloseText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -643,6 +725,79 @@ const styles = StyleSheet.create({
   brailButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  cardModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111111',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  cardFieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  cardFieldLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cardFieldValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 4,
+    color: '#111111',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  copyIcon: {
+    marginRight: 2,
+  },
+  modalCloseButton: {
+    backgroundColor: '#111111',
+    paddingVertical: 14,
+    borderRadius: 32,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

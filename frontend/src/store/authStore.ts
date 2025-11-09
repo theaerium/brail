@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+console.log('🔍 Backend API_URL:', API_URL);
 
 interface User {
   user_id: string;
