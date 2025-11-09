@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { API_URL } from '../config/api';
+import MockAPIService from '../services/MockAPIService';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const DEV_BYPASS = process.env.EXPO_PUBLIC_DEV_BYPASS === 'true';
 
 interface Item {
   item_id: string;
@@ -36,8 +38,13 @@ export const useItemStore = create<ItemState>((set, get) => ({
   fetchItems: async (userId: string) => {
     set({ isLoading: true });
     try {
-      const response = await axios.get(`${API_URL}/api/items/user/${userId}`);
-      set({ items: response.data, isLoading: false });
+      if (DEV_BYPASS) {
+        const items = await MockAPIService.fetchItems(userId);
+        set({ items, isLoading: false });
+      } else {
+        const response = await axios.get(`${API_URL}/api/items/user/${userId}`);
+        set({ items: response.data, isLoading: false });
+      }
     } catch (error) {
       console.error('Failed to fetch items:', error);
       set({ isLoading: false });
@@ -47,11 +54,16 @@ export const useItemStore = create<ItemState>((set, get) => ({
   addItem: async (itemData) => {
     set({ isLoading: true });
     try {
-      const response = await axios.post(`${API_URL}/api/items`, itemData);
-      const newItem = response.data;
-      set((state) => ({ 
+      let newItem;
+      if (DEV_BYPASS) {
+        newItem = await MockAPIService.addItem(itemData);
+      } else {
+        const response = await axios.post(`${API_URL}/api/items`, itemData);
+        newItem = response.data;
+      }
+      set((state) => ({
         items: [...state.items, newItem],
-        isLoading: false 
+        isLoading: false
       }));
       return newItem;
     } catch (error) {
@@ -62,7 +74,11 @@ export const useItemStore = create<ItemState>((set, get) => ({
 
   updateItem: async (itemId: string, updates: Partial<Item>) => {
     try {
-      await axios.put(`${API_URL}/api/items/${itemId}`, updates);
+      if (DEV_BYPASS) {
+        await MockAPIService.updateItem(itemId, updates);
+      } else {
+        await axios.put(`${API_URL}/api/items/${itemId}`, updates);
+      }
       set((state) => ({
         items: state.items.map((item) =>
           item.item_id === itemId ? { ...item, ...updates } : item
@@ -75,7 +91,11 @@ export const useItemStore = create<ItemState>((set, get) => ({
 
   deleteItem: async (itemId: string) => {
     try {
-      await axios.delete(`${API_URL}/api/items/${itemId}`);
+      if (DEV_BYPASS) {
+        await MockAPIService.deleteItem(itemId);
+      } else {
+        await axios.delete(`${API_URL}/api/items/${itemId}`);
+      }
       set((state) => ({
         items: state.items.filter((item) => item.item_id !== itemId),
       }));
@@ -86,8 +106,12 @@ export const useItemStore = create<ItemState>((set, get) => ({
 
   getValuation: async (data: any) => {
     try {
-      const response = await axios.post(`${API_URL}/api/valuations/mock`, data);
-      return response.data;
+      if (DEV_BYPASS) {
+        return await MockAPIService.getValuation(data);
+      } else {
+        const response = await axios.post(`${API_URL}/api/valuations/mock`, data);
+        return response.data;
+      }
     } catch (error) {
       throw error;
     }

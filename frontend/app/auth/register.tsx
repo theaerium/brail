@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,43 +10,45 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../src/store/authStore';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useAuthStore } from "../../src/store/authStore";
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import { API_URL } from "../../src/config/api";
 
 export default function Register() {
   const router = useRouter();
   const { hashPin } = useAuthStore();
-  const [username, setUsername] = useState('');
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRegister = async () => {
     if (!username || !pin || !confirmPin) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     if (username.length < 3) {
-      Alert.alert('Error', 'Username must be at least 3 characters');
+      Alert.alert("Error", "Username must be at least 3 characters");
       return;
     }
 
     if (pin.length < 4 || pin.length > 6) {
-      Alert.alert('Error', 'PIN must be 4-6 digits');
+      Alert.alert("Error", "PIN must be 4-6 digits");
       return;
     }
 
     if (!/^\d+$/.test(pin)) {
-      Alert.alert('Error', 'PIN must contain only numbers');
+      Alert.alert("Error", "PIN must contain only numbers");
       return;
     }
 
     if (pin !== confirmPin) {
-      Alert.alert('Error', 'PINs do not match');
+      Alert.alert("Error", "PINs do not match");
       return;
     }
 
@@ -54,16 +56,26 @@ export default function Register() {
       setIsSubmitting(true);
       const pinHash = await hashPin(pin);
 
-      router.push({
-        pathname: '/auth/personal-info',
-        params: {
-          username,
-          pinHash,
-        },
+      // Register user directly without personal info
+      const response = await axios.post(`${API_URL}/api/users/register`, {
+        username,
+        pin_hash: pinHash,
       });
-    } catch (error) {
-      console.error('Failed to prepare registration:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+
+      // Store user
+      const { setUser } = useAuthStore.getState();
+      await setUser(response.data, pinHash);
+
+      Alert.alert("Success!", "Your account has been created successfully!", [
+        { text: "Get Started", onPress: () => router.replace("/(tabs)/home") },
+      ]);
+    } catch (error: any) {
+      console.error("Registration failed:", error);
+      Alert.alert(
+        "Registration Failed",
+        error.response?.data?.detail ||
+          "Could not complete registration. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -72,13 +84,13 @@ export default function Register() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.push('/')}
+            onPress={() => router.push("/")}
           >
             <Ionicons name="arrow-back" size={24} color="#007AFF" />
           </TouchableOpacity>
@@ -86,12 +98,17 @@ export default function Register() {
           <View style={styles.header}>
             <Ionicons name="person-add" size={64} color="#007AFF" />
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join NFC Trade today</Text>
+            <Text style={styles.subtitle}>Join Brail today</Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons
+                name="person"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Username"
@@ -103,7 +120,12 @@ export default function Register() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="PIN (4-6 digits)"
@@ -115,7 +137,7 @@ export default function Register() {
               />
               <TouchableOpacity onPress={() => setShowPin(!showPin)}>
                 <Ionicons
-                  name={showPin ? 'eye-off' : 'eye'}
+                  name={showPin ? "eye-off" : "eye"}
                   size={20}
                   color="#666"
                 />
@@ -123,7 +145,12 @@ export default function Register() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Confirm PIN"
@@ -138,8 +165,8 @@ export default function Register() {
             <View style={styles.infoBox}>
               <Ionicons name="information-circle" size={20} color="#007AFF" />
               <Text style={styles.infoText}>
-                Your PIN will be used to secure trades and authenticate payments.
-                Keep it safe!
+                Your PIN will be used to secure trades and authenticate
+                payments. Keep it safe!
               </Text>
             </View>
 
@@ -155,9 +182,10 @@ export default function Register() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('/auth/login')}>
+            <TouchableOpacity onPress={() => router.push("/auth/login")}>
               <Text style={styles.linkText}>
-                Already have an account? <Text style={styles.linkTextBold}>Login</Text>
+                Already have an account?{" "}
+                <Text style={styles.linkTextBold}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -170,7 +198,7 @@ export default function Register() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
@@ -184,31 +212,31 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 32,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     marginTop: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginTop: 8,
   },
   form: {
     gap: 16,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: "#F8F8F8",
   },
   inputIcon: {
     marginRight: 12,
@@ -217,11 +245,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#000',
+    color: "#000",
   },
   infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#F0F8FF',
+    flexDirection: "row",
+    backgroundColor: "#F0F8FF",
     padding: 12,
     borderRadius: 8,
     gap: 8,
@@ -229,28 +257,28 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#007AFF',
+    color: "#007AFF",
   },
   registerButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   registerButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   linkText: {
-    textAlign: 'center',
-    color: '#666',
+    textAlign: "center",
+    color: "#666",
     fontSize: 14,
     marginTop: 8,
   },
   linkTextBold: {
-    color: '#007AFF',
-    fontWeight: '600',
+    color: "#007AFF",
+    fontWeight: "600",
   },
 });

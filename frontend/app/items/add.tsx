@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,45 +11,61 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { useAuthStore } from '../../src/store/authStore';
-import { useItemStore } from '../../src/store/itemStore';
-import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
+} from "react-native";
+import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { useAuthStore } from "../../src/store/authStore";
+import { useItemStore } from "../../src/store/itemStore";
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 
 const CATEGORIES = [
-  { label: 'Clothing', value: 'clothing', subcategories: ['shirt', 'pants', 'jacket', 'shorts'] },
-  { label: 'Shoes', value: 'shoes', subcategories: ['sneakers', 'boots', 'sandals'] },
-  { label: 'Accessories', value: 'accessories', subcategories: ['watch', 'bag', 'hat'] },
-  { label: 'Electronics', value: 'electronics', subcategories: ['phone', 'tablet', 'laptop'] },
+  {
+    label: "Clothing",
+    value: "clothing",
+    subcategories: ["shirt", "pants", "jacket", "shorts"],
+  },
+  {
+    label: "Shoes",
+    value: "shoes",
+    subcategories: ["sneakers", "boots", "sandals"],
+  },
+  {
+    label: "Accessories",
+    value: "accessories",
+    subcategories: ["watch", "bag", "hat"],
+  },
+  {
+    label: "Electronics",
+    value: "electronics",
+    subcategories: ["phone", "tablet", "laptop"],
+  },
 ];
 
-const CONDITIONS = ['new', 'excellent', 'good', 'fair', 'poor'];
+const CONDITIONS = ["new", "excellent", "good", "fair", "poor"];
 
 export default function AddItem() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { addItem, getValuation, isLoading } = useItemStore();
 
-  const [photo, setPhoto] = useState<string>('');
-  const [category, setCategory] = useState('clothing');
-  const [subcategory, setSubcategory] = useState('shirt');
-  const [brand, setBrand] = useState('');
-  const [condition, setCondition] = useState('good');
+  const [photo, setPhoto] = useState<string>("");
+  const [category, setCategory] = useState("clothing");
+  const [subcategory, setSubcategory] = useState("shirt");
+  const [brand, setBrand] = useState("");
+  const [condition, setCondition] = useState("good");
   const [estimatedValue, setEstimatedValue] = useState<number | null>(null);
   const [calculating, setCalculating] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permission is required');
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Camera roll permission is required");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -63,8 +79,8 @@ export default function AddItem() {
 
   const takePicture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera permission is required');
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Camera permission is required");
       return;
     }
 
@@ -82,7 +98,7 @@ export default function AddItem() {
 
   const calculateValue = async () => {
     if (!category || !subcategory || !brand || !condition) {
-      Alert.alert('Missing Info', 'Please fill in all fields first');
+      Alert.alert("Missing Info", "Please fill in all fields first");
       return;
     }
 
@@ -94,9 +110,15 @@ export default function AddItem() {
         brand,
         condition,
       });
+      console.log("Valuation result:", result);
       setEstimatedValue(result.value);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to calculate value');
+    } catch (error: any) {
+      console.error("Valuation error:", error);
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to calculate value";
+      Alert.alert("Error", `Failed to calculate value: ${errorMsg}`);
     } finally {
       setCalculating(false);
     }
@@ -104,17 +126,17 @@ export default function AddItem() {
 
   const handleAddItem = async () => {
     if (!photo) {
-      Alert.alert('Missing Photo', 'Please take or select a photo');
+      Alert.alert("Missing Photo", "Please take or select a photo");
       return;
     }
 
     if (!category || !subcategory || !brand || !condition) {
-      Alert.alert('Missing Info', 'Please fill in all fields');
+      Alert.alert("Missing Info", "Please fill in all fields");
       return;
     }
 
     if (!estimatedValue) {
-      Alert.alert('Calculate Value', 'Please calculate the item value first');
+      Alert.alert("Calculate Value", "Please calculate the item value first");
       return;
     }
 
@@ -131,22 +153,19 @@ export default function AddItem() {
         share_percentage: 1.0,
       });
 
-      Alert.alert(
-        'Success',
-        'Item added! Now let\'s tag it with NFC.',
-        [
-          {
-            text: 'Tag Now',
-            onPress: () => router.replace(`/items/tag-nfc?itemId=${item.item_id}`),
-          },
-          {
-            text: 'Later',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      Alert.alert("Success", "Item added! Now let's tag it with NFC.", [
+        {
+          text: "Tag Now",
+          onPress: () =>
+            router.replace(`/items/tag-nfc?itemId=${item.item_id}`),
+        },
+        {
+          text: "Later",
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add item');
+      Alert.alert("Error", "Failed to add item");
     }
   };
 
@@ -156,7 +175,7 @@ export default function AddItem() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
@@ -218,7 +237,11 @@ export default function AddItem() {
                   style={styles.picker}
                 >
                   {CATEGORIES.map((cat) => (
-                    <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
+                    <Picker.Item
+                      key={cat.value}
+                      label={cat.label}
+                      value={cat.value}
+                    />
                   ))}
                 </Picker>
               </View>
@@ -282,7 +305,9 @@ export default function AddItem() {
               ) : (
                 <>
                   <Ionicons name="calculator" size={20} color="#FFFFFF" />
-                  <Text style={styles.calculateButtonText}>Calculate Value</Text>
+                  <Text style={styles.calculateButtonText}>
+                    Calculate Value
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -290,7 +315,9 @@ export default function AddItem() {
             {estimatedValue !== null && (
               <View style={styles.valueContainer}>
                 <Text style={styles.valueLabel}>Estimated Value:</Text>
-                <Text style={styles.valueAmount}>${estimatedValue.toFixed(2)}</Text>
+                <Text style={styles.valueAmount}>
+                  ${estimatedValue.toFixed(2)}
+                </Text>
               </View>
             )}
 
@@ -318,7 +345,7 @@ export default function AddItem() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   scrollView: {
     flex: 1,
@@ -327,8 +354,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
     marginTop: 40,
   },
@@ -337,51 +364,51 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   photoSection: {
     marginBottom: 24,
   },
   photoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   photo: {
-    width: '100%',
+    width: "100%",
     aspectRatio: 1,
     borderRadius: 12,
     marginBottom: 12,
   },
   changePhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   changePhotoText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   photoButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
   },
   photoButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#007AFF',
-    borderStyle: 'dashed',
+    borderColor: "#007AFF",
+    borderStyle: "dashed",
   },
   photoButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
     marginTop: 8,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   form: {
     gap: 16,
@@ -391,73 +418,73 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: "#F8F8F8",
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 12,
-    backgroundColor: '#F8F8F8',
-    overflow: 'hidden',
+    backgroundColor: "#F8F8F8",
+    overflow: "hidden",
   },
   picker: {
     height: 50,
   },
   calculateButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FF9500',
+    flexDirection: "row",
+    backgroundColor: "#FF9500",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     marginTop: 8,
   },
   calculateButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   valueContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F0F8FF',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F0F8FF",
     padding: 16,
     borderRadius: 12,
   },
   valueLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontWeight: "600",
+    color: "#007AFF",
   },
   valueAmount: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    fontWeight: "bold",
+    color: "#007AFF",
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   addButtonDisabled: {
-    backgroundColor: '#CCC',
+    backgroundColor: "#CCC",
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

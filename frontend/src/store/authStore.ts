@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import axios from 'axios';
+import { API_URL } from '../config/api';
+import MockAPIService from '../services/MockAPIService';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const DEV_BYPASS = process.env.EXPO_PUBLIC_DEV_BYPASS === 'true';
 
 interface User {
   user_id: string;
@@ -64,12 +66,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const pinHash = await get().hashPin(pin);
-      const response = await axios.post(`${API_URL}/api/users/register`, {
-        username,
-        pin_hash: pinHash,
-      });
 
-      const user = response.data;
+      let user;
+      if (DEV_BYPASS) {
+        console.log('[DEV BYPASS] Registering user with mock API');
+        user = await MockAPIService.registerUser({ username, pin_hash: pinHash });
+      } else {
+        const response = await axios.post(`${API_URL}/api/users/register`, {
+          username,
+          pin_hash: pinHash,
+        });
+        user = response.data;
+      }
+
       await get().setUser(user, pinHash);
       set({ isLoading: false });
     } catch (error: any) {
@@ -82,12 +91,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const pinHash = await get().hashPin(pin);
-      const response = await axios.post(`${API_URL}/api/users/login`, {
-        username,
-        pin_hash: pinHash,
-      });
 
-      const user = response.data;
+      let user;
+      if (DEV_BYPASS) {
+        console.log('[DEV BYPASS] Logging in user with mock API');
+        user = await MockAPIService.loginUser({ username, pin_hash: pinHash });
+      } else {
+        const response = await axios.post(`${API_URL}/api/users/login`, {
+          username,
+          pin_hash: pinHash,
+        });
+        user = response.data;
+      }
+
       await get().setUser(user, pinHash);
       set({ isLoading: false });
     } catch (error: any) {

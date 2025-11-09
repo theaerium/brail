@@ -1,107 +1,290 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+  Alert,
+  StatusBar,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthStore } from "../../src/store/authStore";
+import LottieView from "lottie-react-native";
 
 export default function PaymentsScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const [mode, setMode] = useState<"spend" | "receive">("spend");
+  const [amount, setAmount] = useState("");
+  const animationRef = useRef<LottieView>(null);
+
+  useEffect(() => {
+    // Play the animation when component mounts
+    animationRef.current?.play();
+  }, []);
+
+  const handleNumberPress = (num: string) => {
+    // Remove commas and decimals for length check
+    const cleanAmount = amount.replace(/,/g, "").replace(".", "");
+
+    // Limit to 6 digits before decimal
+    if (num !== "." && cleanAmount.length >= 6) return;
+
+    if (num === "." && amount.includes(".")) return; // Only one decimal
+
+    if (num === "." && amount === "") {
+      setAmount("0.");
+    } else {
+      setAmount(amount + num);
+    }
+  };
+
+  const formatAmount = (value: string) => {
+    if (!value || value === "0") return "0";
+
+    // Split by decimal
+    const parts = value.split(".");
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+
+    // Add commas to integer part
+    const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    // Return with decimal if exists
+    return decimalPart !== undefined
+      ? `${formatted}.${decimalPart}`
+      : formatted;
+  };
+
+  const handleDelete = () => {
+    setAmount(amount.slice(0, -1));
+  };
+
+  const handleClear = () => {
+    setAmount("");
+  };
+
+  const handleContinue = () => {
+    const cleanAmount = amount.replace(/,/g, "");
+    const amountNum = parseFloat(cleanAmount || "0");
+
+    if (amountNum <= 0) {
+      Alert.alert(
+        "Invalid Amount",
+        "Please enter a valid amount greater than 0",
+      );
+      return;
+    }
+
+    if (amountNum > 999999) {
+      Alert.alert(
+        "Amount Too Large",
+        "Please enter an amount less than $999,999",
+      );
+      return;
+    }
+
+    router.push({
+      pathname: "/payment/accept-payment",
+      params: {
+        amount: amountNum.toFixed(2),
+        merchantId: user!.user_id,
+        merchantName: user!.username,
+      },
+    });
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#F0EC57" />
+
+      {/* Header with Back Button and Toggle Buttons */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Payments</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={28} color="#000" />
+        </TouchableOpacity>
+
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              mode === "spend" && styles.toggleButtonActive,
+            ]}
+            onPress={() => setMode("spend")}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                mode === "spend" && styles.toggleTextActive,
+              ]}
+            >
+              Spend
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              mode === "receive" && styles.toggleButtonActive,
+            ]}
+            onPress={() => setMode("receive")}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                mode === "receive" && styles.toggleTextActive,
+              ]}
+            >
+              Receive
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Payment Methods Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Methods</Text>
-          
-          <TouchableOpacity
-            style={styles.paymentCard}
-            onPress={() => router.push('/payment/merchant-input')}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="phone-portrait" size={28} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>NFC Tap to Pay</Text>
-              <Text style={styles.paymentDescription}>
-                Pay with tagged items using NFC
+      {mode === "spend" ? (
+        <>
+          {/* Spend Mode - NFC Waiting */}
+          <Text style={styles.instructionText}>
+            Hold your phone, card, or item near{"\n"}the terminal you want to
+            spend with
+          </Text>
+
+          {/* Lottie Animation */}
+          <View style={styles.animationContainer}>
+            <LottieView
+              ref={animationRef}
+              source={require("../../assets/lotties/waiting_animation.json")}
+              autoPlay
+              loop
+              style={styles.animation}
+            />
+          </View>
+        </>
+      ) : (
+        <>
+          {/* Receive Mode - Accept Payment */}
+          <View style={styles.receiveContent}>
+            <Text style={styles.receiveLabel}>Accept payment</Text>
+
+            <View style={styles.amountDisplay}>
+              <Text style={styles.currency}>$</Text>
+              <Text style={styles.amountText}>
+                {formatAmount(amount || "0")}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.paymentCard}
-            onPress={() => router.push('/wallet/create')}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="card" size={28} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>NFC Wallet Card</Text>
-              <Text style={styles.paymentDescription}>
-                Create a wallet card for quick access
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/payment/merchant-input')}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="arrow-up" size={24} color="#007AFF" />
+            <View style={styles.keypad}>
+              <View style={styles.keypadRow}>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("1")}
+                >
+                  <Text style={styles.keyText}>1</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("2")}
+                >
+                  <Text style={styles.keyText}>2</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("3")}
+                >
+                  <Text style={styles.keyText}>3</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.quickActionText}>Send Payment</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/payment/accept-payment')}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="arrow-down" size={24} color="#34C759" />
+              <View style={styles.keypadRow}>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("4")}
+                >
+                  <Text style={styles.keyText}>4</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("5")}
+                >
+                  <Text style={styles.keyText}>5</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("6")}
+                >
+                  <Text style={styles.keyText}>6</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.quickActionText}>Receive Payment</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Recent Transactions */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.keypadRow}>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("7")}
+                >
+                  <Text style={styles.keyText}>7</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("8")}
+                >
+                  <Text style={styles.keyText}>8</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("9")}
+                >
+                  <Text style={styles.keyText}>9</Text>
+                </TouchableOpacity>
+              </View>
 
-          <View style={styles.emptyState}>
-            <Ionicons name="receipt-outline" size={60} color="#C7C7CC" />
-            <Text style={styles.emptyStateText}>No payment history</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Your payment transactions will appear here
-            </Text>
+              <View style={styles.keypadRow}>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress(".")}
+                >
+                  <Text style={styles.keyText}>.</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.key}
+                  onPress={() => handleNumberPress("0")}
+                >
+                  <Text style={styles.keyText}>0</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.key} onPress={handleDelete}>
+                  <Ionicons name="backspace-outline" size={28} color="#000" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={handleClear}
+                >
+                  <Text style={styles.clearButtonText}>Clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.continueButton,
+                    !amount && styles.continueButtonDisabled,
+                  ]}
+                  onPress={handleContinue}
+                  disabled={!amount}
+                >
+                  <Text style={styles.continueButtonText}>Continue</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -109,124 +292,142 @@ export default function PaymentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: "#F0EC57",
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    paddingTop: 10,
+    paddingBottom: 10,
+    marginBottom: 100,
   },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: 'bold',
-    color: '#000000',
+  backButton: {
+    padding: 8,
   },
-  content: {
+  toggleContainer: {
+    flexDirection: "row",
+    gap: 12,
     flex: 1,
+    justifyContent: "flex-end",
   },
-  section: {
-    padding: 20,
+  toggleButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: "#000",
+    backgroundColor: "transparent",
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  toggleButtonActive: {
+    backgroundColor: "#000",
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
+  toggleText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
   },
-  viewAllText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '600',
+  toggleTextActive: {
+    color: "#F0EC57",
   },
-  paymentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  instructionText: {
+    fontSize: 18,
+    fontStyle: "italic",
+    color: "#000",
+    textAlign: "center",
+    marginBottom: 60,
+    lineHeight: 28,
   },
-  paymentIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#E5F1FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  paymentDetails: {
+  animationContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  paymentTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
+  animation: {
+    width: 300,
+    height: 300,
   },
-  paymentDescription: {
-    fontSize: 13,
-    color: '#8E8E93',
+  receiveContent: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingBottom: 40,
   },
-  quickActionsGrid: {
-    flexDirection: 'row',
+  receiveLabel: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000",
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  amountDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 40,
+  },
+  currency: {
+    fontSize: 72,
+    fontWeight: "300",
+    color: "#000",
+    marginRight: 4,
+  },
+  amountText: {
+    fontSize: 72,
+    fontWeight: "300",
+    color: "#000",
+  },
+  keypad: {
     gap: 12,
   },
-  quickActionCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F2F2F7',
-    alignItems: 'center',
-    justifyContent: 'center',
+  keypadRow: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    gap: 40,
     marginBottom: 12,
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    textAlign: 'center',
+  key: {
+    width: 80,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
+  keyText: {
+    fontSize: 36,
+    fontWeight: "300",
+    color: "#000",
   },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginTop: 16,
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
-  emptyStateSubtext: {
-    fontSize: 13,
-    color: '#C7C7CC',
-    marginTop: 8,
-    textAlign: 'center',
+  clearButton: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderRadius: 30,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+  },
+  clearButtonText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#000",
+  },
+  continueButton: {
+    flex: 2,
+    backgroundColor: "#000",
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: "center",
+  },
+  continueButtonDisabled: {
+    backgroundColor: "#666",
+  },
+  continueButtonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#F0EC57",
   },
 });

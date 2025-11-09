@@ -1,8 +1,14 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '../src/store/authStore';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "../src/store/authStore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   const router = useRouter();
@@ -19,7 +25,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!checking && user) {
-      router.replace('/(tabs)/home');
+      router.replace("/(tabs)/home");
     }
   }, [checking, user]);
 
@@ -36,7 +42,7 @@ export default function Index() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="pricetag" size={80} color="#007AFF" />
-        <Text style={styles.title}>NFC Trade</Text>
+        <Text style={styles.title}>Brail</Text>
         <Text style={styles.subtitle}>Trade Physical Items with NFC</Text>
       </View>
 
@@ -58,14 +64,14 @@ export default function Index() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => router.push('/auth/login')}
+          onPress={() => router.push("/auth/login")}
         >
           <Text style={styles.primaryButtonText}>Login</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => router.push('/auth/register')}
+          onPress={() => router.push("/auth/register")}
         >
           <Text style={styles.secondaryButtonText}>Create Account</Text>
         </TouchableOpacity>
@@ -79,80 +85,80 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 48,
   },
   title: {
     fontSize: 48,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     marginTop: 16,
   },
   subtitle: {
     fontSize: 18,
-    color: '#666',
+    color: "#666",
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   features: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 48,
   },
   featureItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   featureText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
+    color: "#333",
+    textAlign: "center",
   },
   buttonContainer: {
     gap: 16,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   secondaryButton: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   secondaryButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   footer: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 32,
-    color: '#999',
+    color: "#999",
     fontSize: 14,
   },
 });

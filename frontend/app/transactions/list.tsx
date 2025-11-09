@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,56 +7,126 @@ import {
   TouchableOpacity,
   SafeAreaView,
   RefreshControl,
-} from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../src/store/authStore';
-import { useItemStore } from '../../src/store/itemStore';
+} from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuthStore } from "../../src/store/authStore";
+import { useTransactionStore } from "../../src/store/transactionStore";
 
 export default function TransactionsListScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { items, fetchItems } = useItemStore();
+  const { transactions, fetchTransactions } = useTransactionStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'inventory'>('all');
+  const [filter, setFilter] = useState<"all" | "deposit">("all");
 
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        fetchItems(user.user_id);
+        fetchTransactions(user.user_id);
       }
-    }, [user])
+    }, [user]),
   );
 
   const onRefresh = async () => {
     setRefreshing(true);
     if (user) {
-      await fetchItems(user.user_id);
+      await fetchTransactions(user.user_id);
     }
     setRefreshing(false);
   };
 
-  const renderTransaction = ({ item }: any) => (
-    <TouchableOpacity
-      style={styles.transactionItem}
-      onPress={() => router.push(`/items/${item.item_id}`)}
-    >
-      <View style={styles.transactionIcon}>
-        <Ionicons name="cube" size={24} color="#007AFF" />
-      </View>
-      <View style={styles.transactionDetails}>
-        <Text style={styles.transactionTitle}>
-          {item.brand} {item.subcategory}
-        </Text>
-        <Text style={styles.transactionDate}>Item Deposit</Text>
-        <Text style={styles.transactionCategory}>{item.category}</Text>
-      </View>
-      <View style={styles.transactionRight}>
-        <Text style={styles.transactionAmount}>+${item.value?.toFixed(2)}</Text>
-        <Text style={styles.transactionCondition}>{item.condition}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const filteredTransactions =
+    filter === "all"
+      ? transactions
+      : transactions.filter((tx) => tx.type === "deposit");
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case "deposit":
+        return { name: "cube" as const, color: "#007AFF", bg: "#E5F1FF" };
+      case "payment":
+        return { name: "card" as const, color: "#FF3B30", bg: "#FFE5E5" };
+      case "withdrawal":
+        return {
+          name: "arrow-down-circle" as const,
+          color: "#FF9500",
+          bg: "#FFF3E5",
+        };
+      case "refund":
+        return { name: "arrow-undo" as const, color: "#34C759", bg: "#E5F9E9" };
+      default:
+        return {
+          name: "swap-horizontal" as const,
+          color: "#8E8E93",
+          bg: "#F2F2F7",
+        };
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const renderTransaction = ({ item }: any) => {
+    const icon = getTransactionIcon(item.type);
+    const isPositive = item.type === "deposit" || item.type === "refund";
+
+    return (
+      <TouchableOpacity
+        style={styles.transactionItem}
+        onPress={() => item.item_id && router.push(`/items/${item.item_id}`)}
+      >
+        <View style={[styles.transactionIcon, { backgroundColor: icon.bg }]}>
+          <Ionicons name={icon.name} size={24} color={icon.color} />
+        </View>
+        <View style={styles.transactionDetails}>
+          <Text style={styles.transactionTitle}>
+            {item.type === "deposit" && item.item_details
+              ? `${item.item_details.brand || ""} ${item.item_details.subcategory || ""}`
+              : item.type === "payment" && item.merchant_name
+                ? item.merchant_name
+                : item.description ||
+                  `${item.type.charAt(0).toUpperCase() + item.type.slice(1)}`}
+          </Text>
+          <Text style={styles.transactionDate}>
+            {formatDate(item.created_at)}
+          </Text>
+          {item.item_details?.category && (
+            <Text style={styles.transactionCategory}>
+              {item.item_details.category}
+            </Text>
+          )}
+        </View>
+        <View style={styles.transactionRight}>
+          <Text
+            style={[
+              styles.transactionAmount,
+              { color: isPositive ? "#34C759" : "#FF3B30" },
+            ]}
+          >
+            {isPositive ? "+" : "-"}${item.amount?.toFixed(2)}
+          </Text>
+          {item.item_details?.condition && (
+            <Text style={styles.transactionCondition}>
+              {item.item_details.condition}
+            </Text>
+          )}
+          {item.status && (
+            <Text style={styles.transactionStatus}>{item.status}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -76,16 +146,13 @@ export default function TransactionsListScreen() {
       {/* Filter Tabs */}
       <View style={styles.filterTabs}>
         <TouchableOpacity
-          style={[
-            styles.filterTab,
-            filter === 'all' && styles.filterTabActive,
-          ]}
-          onPress={() => setFilter('all')}
+          style={[styles.filterTab, filter === "all" && styles.filterTabActive]}
+          onPress={() => setFilter("all")}
         >
           <Text
             style={[
               styles.filterTabText,
-              filter === 'all' && styles.filterTabTextActive,
+              filter === "all" && styles.filterTabTextActive,
             ]}
           >
             All Transactions
@@ -94,25 +161,25 @@ export default function TransactionsListScreen() {
         <TouchableOpacity
           style={[
             styles.filterTab,
-            filter === 'inventory' && styles.filterTabActive,
+            filter === "deposit" && styles.filterTabActive,
           ]}
-          onPress={() => setFilter('inventory')}
+          onPress={() => setFilter("deposit")}
         >
           <Text
             style={[
               styles.filterTabText,
-              filter === 'inventory' && styles.filterTabTextActive,
+              filter === "deposit" && styles.filterTabTextActive,
             ]}
           >
-            Current Inventory
+            Deposits Only
           </Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
-        data={items}
+        data={filteredTransactions}
         renderItem={renderTransaction}
-        keyExtractor={(item) => item.item_id}
+        keyExtractor={(item) => item.transaction_id}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -134,71 +201,71 @@ export default function TransactionsListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: "#F2F2F7",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: "#E5E5EA",
   },
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: "600",
+    color: "#000000",
   },
   filterButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterTabs: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   filterTab: {
     flex: 1,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    alignItems: 'center',
+    backgroundColor: "#F2F2F7",
+    alignItems: "center",
   },
   filterTabActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   filterTabText: {
     fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '600',
+    color: "#8E8E93",
+    fontWeight: "600",
   },
   filterTabTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   list: {
     padding: 20,
   },
   transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -208,9 +275,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E5F1FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E5F1FF",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   transactionDetails: {
@@ -218,48 +285,54 @@ const styles = StyleSheet.create({
   },
   transactionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: "600",
+    color: "#000000",
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: "#8E8E93",
     marginBottom: 2,
   },
   transactionCategory: {
     fontSize: 12,
-    color: '#C7C7CC',
-    textTransform: 'capitalize',
+    color: "#C7C7CC",
+    textTransform: "capitalize",
   },
   transactionRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#34C759',
+    fontWeight: "bold",
+    color: "#34C759",
     marginBottom: 4,
   },
   transactionCondition: {
     fontSize: 12,
-    color: '#8E8E93',
-    textTransform: 'capitalize',
+    color: "#8E8E93",
+    textTransform: "capitalize",
+  },
+  transactionStatus: {
+    fontSize: 11,
+    color: "#C7C7CC",
+    textTransform: "capitalize",
+    marginTop: 2,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 80,
   },
   emptyStateText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#8E8E93',
+    fontWeight: "600",
+    color: "#8E8E93",
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#C7C7CC',
+    color: "#C7C7CC",
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

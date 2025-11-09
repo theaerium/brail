@@ -1,4 +1,4 @@
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+import { NfcManager, NfcTech, Ndef, isNFCAvailable } from './NFCManager';
 import * as Crypto from 'expo-crypto';
 
 export interface ItemNFCData {
@@ -34,6 +34,12 @@ class NFCService {
 
   async init() {
     if (this.initialized) return true;
+
+    if (!isNFCAvailable) {
+      console.warn('NFC not available - running in Expo Go or web. Use a development build for NFC functionality.');
+      return false;
+    }
+
     try {
       const supported = await NfcManager.isSupported();
       if (supported) {
@@ -62,7 +68,7 @@ class NFCService {
 
       // Write to tag
       await NfcManager.ndefHandler.writeNdefMessage(bytes);
-      
+
       console.log('Item tag written successfully');
     } catch (error) {
       console.error('Failed to write NFC tag:', error);
@@ -78,14 +84,14 @@ class NFCService {
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
       const tag = await NfcManager.getTag();
-      
+
       if (!tag || !tag.ndefMessage) {
         throw new Error('No data on tag');
       }
 
       const ndefRecords = tag.ndefMessage;
       const textRecord = ndefRecords[0];
-      
+
       if (textRecord && textRecord.payload) {
         const payloadData = Ndef.text.decodePayload(new Uint8Array(textRecord.payload));
         const compactData = JSON.parse(payloadData);

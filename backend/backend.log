@@ -1,0 +1,25 @@
+/Users/mdawes/Documents/aerium/brail/backend/server.py:494: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:     Started server process [96986]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61134 - "POST /api/valuations/mock HTTP/1.1" 200 OK
+INFO:     50.175.245.62:0 - "GET /api/items/user/021e0440-0481-451c-9592-1ae2cf77b542 HTTP/1.1" 200 OK
+2025-11-08 21:16:01,083 - __main__ - ERROR - AI Analysis failed: 500: OpenAI API key not configured
+INFO:     50.175.245.62:0 - "POST /api/items/analyze-deposit HTTP/1.1" 500 Internal Server Error
+INFO:     50.175.245.62:0 - "GET /api/items/user/021e0440-0481-451c-9592-1ae2cf77b542 HTTP/1.1" 200 OK
+2025-11-08 21:17:56,810 - __main__ - ERROR - AI Analysis failed: 500: OpenAI API key not configured
+INFO:     50.175.245.62:0 - "POST /api/items/analyze-deposit HTTP/1.1" 500 Internal Server Error
+INFO:     50.175.245.62:0 - "POST /api/valuations/mock HTTP/1.1" 200 OK
+/Users/mdawes/Documents/aerium/brail/backend/server.py:318: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+  item_obj = Item(**item.dict())
+/Users/mdawes/Documents/aerium/brail/backend/server.py:319: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+  await db.items.insert_one(item_obj.dict())
+INFO:     50.175.245.62:0 - "POST /api/items HTTP/1.1" 200 OK
+INFO:     50.175.245.62:0 - "GET /api/items/user/021e0440-0481-451c-9592-1ae2cf77b542 HTTP/1.1" 200 OK

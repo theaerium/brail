@@ -1,28 +1,28 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#000',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: "#000",
+        tabBarInactiveTintColor: "#999",
         tabBarStyle: {
-          backgroundColor: '#F5F5F5',
+          backgroundColor: "#F5F5F5",
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
+          height: Platform.OS === "ios" ? 85 : 65,
+          paddingBottom: Platform.OS === "ios" ? insets.bottom : 8,
           paddingTop: 8,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: "600",
         },
         headerShown: false,
       }}
@@ -30,7 +30,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
@@ -39,16 +39,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="payments"
         options={{
-          title: 'Pay',
+          title: "Pay",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet" size={size} color={color} />
           ),
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
         name="shopping"
         options={{
-          title: 'Shop',
+          title: "Shop",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bag" size={size} color={color} />
           ),

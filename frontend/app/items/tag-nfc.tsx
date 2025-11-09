@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,33 +8,106 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useItemStore } from '../../src/store/itemStore';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useItemStore } from "../../src/store/itemStore";
+import { Ionicons } from "@expo/vector-icons";
+import NFCService, { ItemNFCData } from "../../src/services/NFCService";
+import { isNFCAvailable } from "../../src/services/NFCManager";
 
 export default function TagNFC() {
   const router = useRouter();
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { items } = useItemStore();
   const [isWriting, setIsWriting] = useState(false);
+  const [nfcSupported, setNfcSupported] = useState(false);
 
   const item = items.find((i) => i.item_id === itemId);
 
+  useEffect(() => {
+    checkNFCSupport();
+  }, []);
+
+  const checkNFCSupport = async () => {
+    if (!isNFCAvailable) {
+      setNfcSupported(false);
+      return;
+    }
+
+    try {
+      const supported = await NFCService.init();
+      setNfcSupported(supported);
+    } catch (error) {
+      console.error("NFC check failed:", error);
+      setNfcSupported(false);
+    }
+  };
+
   const handleWriteNFC = async () => {
+    if (!item) return;
+
     setIsWriting(true);
 
-    // Simulate NFC write process
-    setTimeout(() => {
+    try {
+      if (!nfcSupported || !isNFCAvailable) {
+        // Simulate NFC write for Expo Go or unsupported devices
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        setIsWriting(false);
+        Alert.alert(
+          "NFC Tag Simulated!",
+          "NFC is not available on this device or in Expo Go. In a development build with NFC support, this would write to your NFC tag.\n\nYour item is saved and ready to use!",
+          [
+            {
+              text: "Done",
+              onPress: () => router.replace("/(tabs)/inventory"),
+            },
+          ],
+        );
+        return;
+      }
+
+      // Real NFC write
+      const nfcData: ItemNFCData = {
+        item_id: item.item_id,
+        owner_id: item.owner_id,
+        category: item.category,
+        subcategory: item.subcategory,
+        brand: item.brand,
+        value: item.value,
+        is_fractional: item.is_fractional,
+        share_percentage: item.share_percentage,
+        parent_item_id: item.parent_item_id,
+        timestamp: Date.now(),
+        signature: await NFCService.generateSignature(
+          `${item.item_id}${item.owner_id}${Date.now()}`,
+        ),
+      };
+
+      await NFCService.writeItemTag(nfcData);
+
       setIsWriting(false);
       Alert.alert(
-        'NFC Tag Simulated!',
-        'In a real device with development build, this would write to your NFC tag.\\n\\nYour item is tagged and ready to use!',
+        "Success!",
+        "Your item has been tagged with NFC. You can now use this tag for quick scanning and verification.",
         [
-          { text: 'Done', onPress: () => router.replace('/(tabs)/inventory') },
-        ]
+          {
+            text: "Done",
+            onPress: () => router.replace("/(tabs)/inventory"),
+          },
+        ],
       );
-    }, 2000);
+    } catch (error: any) {
+      setIsWriting(false);
+      console.error("NFC write failed:", error);
+      Alert.alert(
+        "Write Failed",
+        error.message || "Failed to write NFC tag. Please try again.",
+        [
+          { text: "Retry", onPress: handleWriteNFC },
+          { text: "Cancel", onPress: () => setIsWriting(false) },
+        ],
+      );
+    }
   };
 
   if (!item) {
@@ -52,10 +125,7 @@ export default function TagNFC() {
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color="#FF3B30" />
           <Text style={styles.errorText}>Item not found</Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => router.back()}>
             <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -86,34 +156,60 @@ export default function TagNFC() {
 
         {!isWriting ? (
           <>
-            <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={24} color="#007AFF" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Development Build Required</Text>
-                <Text style={styles.infoText}>
-                  NFC functionality requires a development build. In Expo Go, we'll simulate the NFC tagging process.
-                </Text>
+            {!nfcSupported && (
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={24} color="#007AFF" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoTitle}>NFC Not Available</Text>
+                  <Text style={styles.infoText}>
+                    NFC functionality requires a development build on a device
+                    with NFC support. We'll simulate the NFC tagging process.
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
+
+            {nfcSupported && (
+              <View style={[styles.infoBox, { backgroundColor: "#E5F9E9" }]}>
+                <Ionicons name="checkmark-circle" size={24} color="#34C759" />
+                <View style={styles.infoContent}>
+                  <Text style={[styles.infoTitle, { color: "#1F7A1F" }]}>
+                    NFC Ready
+                  </Text>
+                  <Text style={[styles.infoText, { color: "#1F7A1F" }]}>
+                    Your device supports NFC. You can write to a real NFC tag
+                    now.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             <View style={styles.instructions}>
-              <Text style={styles.instructionsTitle}>How to Tag (Real Device):</Text>
+              <Text style={styles.instructionsTitle}>How to Tag:</Text>
               <Text style={styles.instructionsText}>
-                1. Get NTAG215 NFC stickers ($0.25 each){'\n'}
-                2. Place sticker on your item's label{'\n'}
-                3. Tap "Write to NFC Tag" below{'\n'}
-                4. Hold phone near the sticker{'\n'}
+                1. Get NTAG215 NFC stickers ($0.25 each){"\n"}
+                2. Place sticker on your item's label{"\n"}
+                3. Tap "
+                {nfcSupported ? "Write to NFC Tag" : "Simulate NFC Write"}"
+                below{"\n"}
+                4. Hold phone near the sticker{"\n"}
                 5. Wait for confirmation
               </Text>
             </View>
 
             <View style={styles.nfcDataBox}>
               <Text style={styles.nfcDataTitle}>Data to be Written:</Text>
-              <Text style={styles.nfcDataText}>Item ID: {item.item_id.substring(0, 12)}...</Text>
-              <Text style={styles.nfcDataText}>Owner: {item.owner_id.substring(0, 12)}...</Text>
+              <Text style={styles.nfcDataText}>
+                Item ID: {item.item_id.substring(0, 12)}...
+              </Text>
+              <Text style={styles.nfcDataText}>
+                Owner: {item.owner_id.substring(0, 12)}...
+              </Text>
               <Text style={styles.nfcDataText}>Category: {item.category}</Text>
               <Text style={styles.nfcDataText}>Value: ${item.value}</Text>
-              <Text style={styles.nfcDataText}>Size: ~150-200 bytes (fits NTAG215)</Text>
+              <Text style={styles.nfcDataText}>
+                Size: ~150-200 bytes (fits NTAG215)
+              </Text>
             </View>
 
             <TouchableOpacity
@@ -121,7 +217,9 @@ export default function TagNFC() {
               onPress={handleWriteNFC}
             >
               <Ionicons name="phone-portrait" size={24} color="#FFFFFF" />
-              <Text style={styles.writeButtonText}>Simulate NFC Write</Text>
+              <Text style={styles.writeButtonText}>
+                {nfcSupported ? "Write to NFC Tag" : "Simulate NFC Write"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -134,9 +232,22 @@ export default function TagNFC() {
         ) : (
           <View style={styles.writingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.writingText}>Simulating NFC write...</Text>
-            <Ionicons name="phone-portrait" size={100} color="#007AFF" style={{ marginTop: 24 }} />
-            <Text style={styles.writingHint}>In real device, hold phone near tag</Text>
+            <Text style={styles.writingText}>
+              {nfcSupported
+                ? "Writing to NFC tag..."
+                : "Simulating NFC write..."}
+            </Text>
+            <Ionicons
+              name="phone-portrait"
+              size={100}
+              color="#007AFF"
+              style={{ marginTop: 24 }}
+            />
+            <Text style={styles.writingHint}>
+              {nfcSupported
+                ? "Hold your phone near the NFC tag"
+                : "In real device, hold phone near tag"}
+            </Text>
           </View>
         )}
       </View>
@@ -147,11 +258,11 @@ export default function TagNFC() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 24,
     marginTop: 40,
   },
@@ -160,15 +271,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   content: {
     flex: 1,
     padding: 24,
   },
   itemPreview: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   itemImage: {
@@ -179,18 +290,18 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   itemValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    fontWeight: "bold",
+    color: "#007AFF",
     marginTop: 8,
   },
   infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF3CD',
+    flexDirection: "row",
+    backgroundColor: "#FFF3CD",
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
@@ -201,116 +312,116 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#856404',
+    fontWeight: "bold",
+    color: "#856404",
     marginBottom: 4,
   },
   infoText: {
     fontSize: 14,
-    color: '#856404',
+    color: "#856404",
     lineHeight: 20,
   },
   instructions: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: "#F0F8FF",
     padding: 20,
     borderRadius: 12,
     marginBottom: 16,
   },
   instructionsTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    fontWeight: "bold",
+    color: "#007AFF",
     marginBottom: 12,
   },
   instructionsText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     lineHeight: 22,
   },
   nfcDataBox: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: "#F8F8F8",
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
   },
   nfcDataTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginBottom: 12,
   },
   nfcDataText: {
     fontSize: 13,
-    color: '#666',
+    color: "#666",
     marginBottom: 6,
   },
   writeButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007AFF',
+    flexDirection: "row",
+    backgroundColor: "#007AFF",
     padding: 18,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
     marginBottom: 16,
   },
   writeButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   skipButton: {
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   skipButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   writingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 48,
   },
   writingText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     marginTop: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   writingHint: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginTop: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   errorText: {
     fontSize: 20,
-    color: '#FF3B30',
+    color: "#FF3B30",
     marginTop: 16,
     marginBottom: 24,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 12,
     minWidth: 150,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
