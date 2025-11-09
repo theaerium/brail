@@ -70,6 +70,7 @@ const STORES: Store[] = [
 ];
 
 export default function ShoppingScreen() {
+  const navigation = useNavigation();
   const [showWebView, setShowWebView] = useState(false);
   const [url, setUrl] = useState('https://www.google.com');
   const [searchText, setSearchText] = useState('');
@@ -77,6 +78,21 @@ export default function ShoppingScreen() {
   const [canGoForward, setCanGoForward] = useState(false);
   const [loading, setLoading] = useState(false);
   const webViewRef = useRef<WebView>(null);
+
+  // Hide tab bar when in webview, show when in store selection
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: showWebView ? { display: 'none' } : {
+        backgroundColor: '#F5F5F5',
+        borderTopWidth: 0,
+        height: Platform.OS === 'ios' ? 85 : 65,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+        paddingTop: 8,
+        elevation: 0,
+        shadowOpacity: 0,
+      },
+    });
+  }, [showWebView, navigation]);
 
   const handleStorePress = (storeUrl: string) => {
     setUrl(storeUrl);
