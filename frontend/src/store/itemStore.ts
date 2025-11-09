@@ -79,11 +79,20 @@ export const useItemStore = create<ItemState>((set, get) => ({
       } else {
         await axios.put(`${API_URL}/api/items/${itemId}`, updates);
       }
-      set((state) => ({
-        items: state.items.map((item) =>
+      set((state) => {
+        const existing = state.items.find((item) => item.item_id === itemId);
+        let nextItems = state.items.map((item) =>
           item.item_id === itemId ? { ...item, ...updates } : item
-        ),
-      }));
+        );
+
+        if (updates.owner_id && existing && updates.owner_id !== existing.owner_id) {
+          nextItems = state.items.filter((item) => item.item_id !== itemId);
+        } else if (updates.value !== undefined && updates.value <= 0) {
+          nextItems = state.items.filter((item) => item.item_id !== itemId);
+        }
+
+        return { items: nextItems };
+      });
     } catch (error) {
       throw error;
     }

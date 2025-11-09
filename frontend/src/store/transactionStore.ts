@@ -5,10 +5,17 @@ import MockAPIService from '../services/MockAPIService';
 
 const DEV_BYPASS = process.env.EXPO_PUBLIC_DEV_BYPASS === 'true';
 
+export interface SpentItem {
+  item_id: string;
+  label?: string;
+  amount: number;
+  fraction: number;
+}
+
 export interface Transaction {
   transaction_id: string;
   user_id: string;
-  type: 'deposit' | 'payment' | 'withdrawal' | 'refund';
+  type: 'deposit' | 'payment' | 'withdrawal' | 'refund' | 'transfer';
   amount: number;
   item_id?: string;
   item_details?: {
@@ -18,8 +25,10 @@ export interface Transaction {
     condition?: string;
   };
   merchant_name?: string;
+  website_name?: string;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
   description?: string;
+  spent_items?: SpentItem[];
   created_at: string;
   updated_at?: string;
 }
@@ -28,7 +37,11 @@ interface TransactionState {
   transactions: Transaction[];
   isLoading: boolean;
   fetchTransactions: (userId: string) => Promise<void>;
-  createTransaction: (transactionData: Omit<Transaction, 'transaction_id' | 'created_at'>) => Promise<Transaction>;
+  createTransaction: (
+    transactionData: Omit<Transaction, 'transaction_id' | 'created_at'>,
+    options?: { silent?: boolean }
+  ) => Promise<Transaction>;
+  addLocalTransaction: (transaction: Transaction) => void;
   getTransactionById: (transactionId: string) => Transaction | undefined;
 }
 
@@ -53,7 +66,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }
   },
 
-  createTransaction: async (transactionData) => {
+  createTransaction: async (transactionData, options = {}) => {
     set({ isLoading: true });
     try {
       let newTransaction;
@@ -65,15 +78,30 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         newTransaction = response.data;
       }
 
-      set((state) => ({
-        transactions: [newTransaction, ...state.transactions],
-        isLoading: false
-      }));
+      if (options.silent) {
+        set({ isLoading: false });
+      } else {
+        set((state) => ({
+          transactions: [newTransaction, ...state.transactions.filter((tx) => tx.transaction_id !== newTransaction.transaction_id)],
+          isLoading: false
+        }));
+      }
       return newTransaction;
     } catch (error) {
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  addLocalTransaction: (transaction) => {
+    set((state) => {
+      if (state.transactions.some((tx) => tx.transaction_id === transaction.transaction_id)) {
+        return state;
+      }
+      return {
+        transactions: [transaction, ...state.transactions]
+      };
+    });
   },
 
   getTransactionById: (transactionId: string) => {

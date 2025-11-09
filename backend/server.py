@@ -102,6 +102,7 @@ class ItemCreate(BaseModel):
 class ItemUpdate(BaseModel):
     share_percentage: Optional[float] = None
     owner_id: Optional[str] = None
+    value: Optional[float] = None
 
 class DepositAnalysisRequest(BaseModel):
     image_base64: str  # Base64 encoded image with or without data:image prefix
@@ -123,6 +124,13 @@ class ItemDetails(BaseModel):
     category: Optional[str] = None
     condition: Optional[str] = None
 
+class SpentItem(BaseModel):
+    item_id: str
+    label: Optional[str] = None
+    amount: float
+    fraction: float
+
+
 class Transaction(BaseModel):
     transaction_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
@@ -131,10 +139,13 @@ class Transaction(BaseModel):
     item_id: Optional[str] = None
     item_details: Optional[ItemDetails] = None
     merchant_name: Optional[str] = None
+    website_name: Optional[str] = None
     status: str = "completed"  # pending, completed, failed, cancelled
     description: Optional[str] = None
+    spent_items: Optional[List[SpentItem]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
 
 class TransactionCreate(BaseModel):
     user_id: str
@@ -143,8 +154,10 @@ class TransactionCreate(BaseModel):
     item_id: Optional[str] = None
     item_details: Optional[ItemDetails] = None
     merchant_name: Optional[str] = None
+    website_name: Optional[str] = None
     status: str = "completed"
     description: Optional[str] = None
+    spent_items: Optional[List[SpentItem]] = None
 
 
 # ============ Trade Models ============
@@ -197,6 +210,16 @@ async def login_user(credentials: UserLogin):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    return User(**user)
+
+
+@api_router.get("/users/by-username/{username}", response_model=User)
+async def get_user_by_username(username: str):
+    user = await db.users.find_one({
+        "username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}
+    })
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return User(**user)
 
 @api_router.get("/users/{user_id}", response_model=User)

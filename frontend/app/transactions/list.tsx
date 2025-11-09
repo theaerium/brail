@@ -12,6 +12,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../src/store/authStore";
 import { useTransactionStore } from "../../src/store/transactionStore";
+import type { Transaction as TransactionType } from "../../src/store/transactionStore";
 
 export default function TransactionsListScreen() {
   const router = useRouter();
@@ -76,6 +77,34 @@ export default function TransactionsListScreen() {
     return date.toLocaleDateString();
   };
 
+  const formatFraction = (value: number) => {
+    if (value >= 0.999) return "full";
+    const denominators = [2, 3, 4, 5, 6, 8];
+    let best = { diff: Number.MAX_VALUE, num: 0, den: 1 };
+    denominators.forEach((den) => {
+      const num = Math.round(value * den);
+      if (num === 0) return;
+      const diff = Math.abs(value - num / den);
+      if (diff < best.diff) {
+        best = { diff, num, den };
+      }
+    });
+    return `${best.num}/${best.den}`;
+  };
+
+  const getSpentSummary = (transaction: TransactionType) => {
+    if (!transaction.spent_items || transaction.spent_items.length === 0) {
+      return null;
+    }
+    return transaction.spent_items
+      .map((item) =>
+        item.fraction >= 0.999
+          ? item.label || "item"
+          : `${formatFraction(item.fraction)} of ${item.label || "item"}`,
+      )
+      .join(", ");
+  };
+
   const renderTransaction = ({ item }: any) => {
     const icon = getTransactionIcon(item.type);
     const isPositive = item.type === "deposit" || item.type === "refund";
@@ -100,6 +129,11 @@ export default function TransactionsListScreen() {
           <Text style={styles.transactionDate}>
             {formatDate(item.created_at)}
           </Text>
+          {item.spent_items?.length ? (
+            <Text style={styles.transactionSpent}>
+              Spent: {getSpentSummary(item)}
+            </Text>
+          ) : null}
           {item.item_details?.category && (
             <Text style={styles.transactionCategory}>
               {item.item_details.category}
@@ -293,6 +327,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8E8E93",
     marginBottom: 2,
+  },
+  transactionSpent: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
   },
   transactionCategory: {
     fontSize: 12,

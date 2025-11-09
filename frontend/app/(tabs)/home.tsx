@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../src/store/authStore";
 import { useItemStore } from "../../src/store/itemStore";
 import { useTransactionStore } from "../../src/store/transactionStore";
+import type { Transaction as TransactionType } from "../../src/store/transactionStore";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -80,6 +81,35 @@ export default function HomeScreen() {
       return transaction.merchant_name;
     }
     return transaction.description || transaction.type;
+  };
+
+  const formatFraction = (value: number) => {
+    if (value >= 0.999) return "full";
+    const denominators = [2, 3, 4, 5, 6, 8];
+    let best = { diff: Number.MAX_VALUE, num: 0, den: 1 };
+    denominators.forEach((den) => {
+      const num = Math.round(value * den);
+      if (num === 0) return;
+      const diff = Math.abs(value - num / den);
+      if (diff < best.diff) {
+        best = { diff, num, den };
+      }
+    });
+    return `${best.num}/${best.den}`;
+  };
+
+  const getSpentSummary = (transaction: TransactionType) => {
+    if (!transaction.spent_items || transaction.spent_items.length === 0) {
+      return null;
+    }
+    return transaction.spent_items
+      .map((item) => {
+        if (item.fraction >= 0.999) {
+          return item.label || "item";
+        }
+        return `${formatFraction(item.fraction)} of ${item.label || "item"}`;
+      })
+      .join(", ");
   };
 
   // Take only the most recent 5 transactions for home screen
@@ -224,6 +254,11 @@ export default function HomeScreen() {
                       {formatTime(transaction.created_at)}
                     </Text>
                   </View>
+                  {transaction.spent_items?.length ? (
+                    <Text style={styles.transactionSpentText}>
+                      Spent: {getSpentSummary(transaction)}
+                    </Text>
+                  ) : null}
                 </View>
 
                 {/* Amount */}
@@ -436,6 +471,11 @@ const styles = StyleSheet.create({
   transactionTime: {
     fontSize: 13,
     color: "#999",
+  },
+  transactionSpentText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
   transactionAmount: {
     fontSize: 18,

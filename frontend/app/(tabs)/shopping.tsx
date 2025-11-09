@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,14 @@ import {
   ScrollView,
   Image,
   Modal,
+  Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
+import { useItemStore } from '../../src/store/itemStore';
+import { useTransactionStore, SpentItem } from '../../src/store/transactionStore';
 import * as Clipboard from 'expo-clipboard';
 
 interface Store {
@@ -79,9 +82,16 @@ const TEST_PAYMENT_DETAILS = {
   cvv: '234',
 };
 
+const SHIPPING_LABEL_IMAGE = require('../../assets/images/shipping_label.png');
+const DEFAULT_CHECKOUT_VALUE = 53.25;
+
+type InventoryItem = ReturnType<typeof useItemStore>['items'][number];
+
 export default function ShoppingScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { items, updateItem, deleteItem } = useItemStore();
+  const { createTransaction } = useTransactionStore();
   const [showWebView, setShowWebView] = useState(false);
   const [url, setUrl] = useState('https://www.google.com');
   const [searchText, setSearchText] = useState('');
@@ -89,15 +99,22 @@ export default function ShoppingScreen() {
   const [canGoForward, setCanGoForward] = useState(false);
   const [loading, setLoading] = useState(false);
   const webViewRef = useRef<WebView>(null);
-  const [isCardModalVisible, setIsCardModalVisible] = useState(false);
+  const [showCardSheet, setShowCardSheet] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const checkoutRequestRef = useRef<{ domain: string } | null>(null);
+  const checkoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const finalizingCheckoutRef = useRef(false);
   const cardDetails = TEST_PAYMENT_DETAILS;
   const cardFieldRows = [
     { label: 'Card Number', value: cardDetails.cardNumber },
     { label: 'Expiry Date', value: cardDetails.expiryDate },
     { label: 'CVV', value: cardDetails.cvv },
   ];
+  const [shippingPromptVisible, setShippingPromptVisible] = useState(false);
+  const [shippingPromptItems, setShippingPromptItems] = useState<SpentItem[]>([]);
+  const [shippingModalVisible, setShippingModalVisible] = useState(false);
+  const [showShippingLabel, setShowShippingLabel] = useState(false);
 
   // Hide tab bar when in webview, show when in store selection
   useEffect(() => {
@@ -119,8 +136,180 @@ export default function ShoppingScreen() {
       if (copyTimeoutRef.current) {
         clearTimeout(copyTimeoutRef.current);
       }
+      if (checkoutTimeoutRef.current) {
+        clearTimeout(checkoutTimeoutRef.current);
+      }
     };
   }, []);
+
+  const parseWebsiteName = useCallback((currentUrl: string) => {
+    try {
+      const hostname = new URL(currentUrl).hostname.replace(/^www\./, '');
+      const parts = hostname.split('.');
+      return parts[0] || hostname;
+    } catch (error) {
+      return 'Online Shop';
+    }
+  }, []);
+
+  const formatFraction = (value: number) => {
+    if (value >= 0.999) {
+      return 'full';
+    }
+    const denominators = [2, 3, 4, 5, 6, 8, 10];
+    let best = { diff: Number.MAX_VALUE, num: 0, den: 1 };
+    denominators.forEach((den) => {
+      const num = Math.round(value * den);
+      if (num === 0) {
+        return;
+      }
+      const diff = Math.abs(value - num / den);
+      if (diff < best.diff) {
+        best = { diff, num, den };
+      }
+    });
+    return `${best.num}/${best.den}`;
+  };
+
+  const buildSpentSummary = (spent: SpentItem[]) => {
+    if (!spent.length) {
+      return '';
+    }
+    return spent
+      .map((item) => {
+        if (item.fraction >= 0.999) {
+          return item.label || 'item';
+        }
+        return `${formatFraction(item.fraction)} of ${item.label || 'item'}`;
+      })
+      .join(', ');
+  };
+
+  const allocateItemsForSpend = useCallback(
+    (amount: number) => {
+      const sorted = [...items].sort((a, b) => (a.value || 0) - (b.value || 0));
+      const allocations: { item: InventoryItem; amount: number; fraction: number }[] = [];
+      let remaining = parseFloat(amount.toFixed(2));
+
+      for (const item of sorted) {
+        if (remaining <= 0) {
+          break;
+        }
+        if (!item.value || item.value <= 0) {
+          continue;
+        }
+        const allocation = Math.min(item.value, remaining);
+        allocations.push({
+          item,
+          amount: parseFloat(allocation.toFixed(2)),
+          fraction: Math.min(1, allocation / item.value),
+        });
+        remaining = parseFloat((remaining - allocation).toFixed(2));
+      }
+
+      return { allocations, remaining };
+    },
+    [items],
+  );
+
+  const extractPriceFromText = useCallback((text: string) => {
+    if (!text) {
+      return null;
+    }
+    const normalized = text.replace(/\s+/g, ' ');
+    const priorityPatterns = [
+      /(order total|grand total|amount due)[^$]*\$?([\d,.]+)/i,
+      /(total)[^$]*\$?([\d,.]+)/i,
+      /\$\s*([\d,.]+)/,
+    ];
+
+    for (const pattern of priorityPatterns) {
+      const match = normalized.match(pattern);
+      const numericGroup = match && (match[2] || match[1]);
+      if (numericGroup) {
+        const value = parseFloat(numericGroup.replace(/,/g, ''));
+        if (!Number.isNaN(value)) {
+          return value;
+        }
+      }
+    }
+
+    return null;
+  }, []);
+
+  const finalizeCheckoutTransaction = useCallback(
+    async (amountOverride?: number) => {
+      if (finalizingCheckoutRef.current) {
+        return;
+      }
+      finalizingCheckoutRef.current = true;
+      if (checkoutTimeoutRef.current) {
+        clearTimeout(checkoutTimeoutRef.current);
+        checkoutTimeoutRef.current = null;
+      }
+
+      const pending = checkoutRequestRef.current;
+      checkoutRequestRef.current = null;
+
+      if (!pending || !user) {
+        return;
+      }
+
+      const amountToSpend = amountOverride && amountOverride > 0 ? amountOverride : DEFAULT_CHECKOUT_VALUE;
+
+      if (!items.length) {
+        Alert.alert('No Funds', 'Deposit an item before checking out with Brail.');
+        return;
+      }
+
+      const { allocations, remaining } = allocateItemsForSpend(amountToSpend);
+
+      if (!allocations.length || remaining > 0.01) {
+        Alert.alert('Insufficient Balance', 'You do not have enough deposited value to cover this purchase.');
+        return;
+      }
+
+      try {
+        for (const allocation of allocations) {
+          const itemLeft = allocation.item.value - allocation.amount;
+          if (itemLeft <= 0.01) {
+            await deleteItem(allocation.item.item_id);
+          } else {
+            await updateItem(allocation.item.item_id, { value: parseFloat(itemLeft.toFixed(2)) });
+          }
+        }
+
+        const spentItemsPayload: SpentItem[] = allocations.map((allocation) => ({
+          item_id: allocation.item.item_id,
+          label: `${allocation.item.brand} ${allocation.item.subcategory}`.trim(),
+          amount: parseFloat(allocation.amount.toFixed(2)),
+          fraction: parseFloat(Math.min(1, allocation.fraction).toFixed(3)),
+        }));
+
+        const merchantName = pending.domain;
+        const spentSummary = buildSpentSummary(spentItemsPayload);
+
+        await createTransaction({
+          user_id: user.user_id,
+          type: 'payment',
+          amount: parseFloat(amountToSpend.toFixed(2)),
+          merchant_name: merchantName,
+          website_name: merchantName,
+          status: 'completed',
+          description: spentSummary ? `Spent ${spentSummary}` : undefined,
+          spent_items: spentItemsPayload,
+        });
+
+        setShippingPromptItems(spentItemsPayload);
+        setShippingPromptVisible(true);
+        setShowShippingLabel(false);
+      } catch (error: any) {
+        console.error('Failed to finalize checkout', error);
+        Alert.alert('Checkout Failed', error?.message || 'Unable to complete payment.');
+      }
+    },
+    [allocateItemsForSpend, createTransaction, deleteItem, items, updateItem, user],
+  );
 
   const handleStorePress = (storeUrl: string) => {
     setUrl(storeUrl);
@@ -154,9 +343,36 @@ export default function ShoppingScreen() {
       return;
     }
 
-    const userData = buildUserData();
+    if (!items.length) {
+      Alert.alert('No Funds', 'Deposit an item to cover the purchase before paying with Brail.');
+      return;
+    }
 
-    // JavaScript code to inject and autofill forms
+    const userData = buildUserData();
+    const merchant = parseWebsiteName(url);
+    checkoutRequestRef.current = { domain: merchant };
+    finalizingCheckoutRef.current = false;
+    if (checkoutTimeoutRef.current) {
+      clearTimeout(checkoutTimeoutRef.current);
+    }
+    checkoutTimeoutRef.current = setTimeout(() => {
+      finalizeCheckoutTransaction();
+    }, 1800);
+
+    const snapshotScript = `
+      (function() {
+        try {
+          const bodyText = document.body ? document.body.innerText : '';
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'checkoutContent', text: bodyText }));
+        } catch (error) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'checkoutContent', text: '' }));
+        }
+      })();
+      true;
+    `;
+
+    webViewRef.current.injectJavaScript(snapshotScript);
+
     const autofillScript = `
       (function() {
         const userData = ${JSON.stringify(userData)};
@@ -323,7 +539,7 @@ export default function ShoppingScreen() {
 
     // Inject the script into the webview
     webViewRef.current.injectJavaScript(autofillScript);
-    setIsCardModalVisible(true);
+    setShowCardSheet(true);
     setCopiedField(null);
   };
 
@@ -382,6 +598,21 @@ export default function ShoppingScreen() {
       webViewRef.current.reload();
     }
   };
+
+  const handleWebViewMessage = useCallback(
+    (event: any) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data?.type === 'checkoutContent') {
+          const parsedPrice = extractPriceFromText(data.text);
+          finalizeCheckoutTransaction(parsedPrice || undefined);
+        }
+      } catch (error) {
+        console.log('Unable to parse webview message');
+      }
+    },
+    [extractPriceFromText, finalizeCheckoutTransaction],
+  );
 
 
   // Show store selection screen
@@ -513,6 +744,7 @@ export default function ShoppingScreen() {
               setCanGoBack(navState.canGoBack);
               setCanGoForward(navState.canGoForward);
             }}
+            onMessage={handleWebViewMessage}
             allowsBackForwardNavigationGestures
             javaScriptEnabled={true}
             domStorageEnabled={true}
@@ -530,19 +762,17 @@ export default function ShoppingScreen() {
           <Ionicons name="card" size={14} color="#FFFFFF" style={styles.brailIcon} />
           <Text style={styles.brailButtonText}>Pay with Brail</Text>
         </TouchableOpacity>
-
-        <Modal
-          visible={isCardModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setIsCardModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.cardModalContainer}>
-              <Text style={styles.modalTitle}>Enter your Brail card details</Text>
+        {showCardSheet && (
+          <View style={styles.cardSheetOverlay} pointerEvents="box-none">
+            <View style={styles.cardSheet} pointerEvents="auto">
+              <View style={styles.cardSheetHeader}>
+                <Text style={styles.modalTitle}>Enter your Brail card details</Text>
+                <TouchableOpacity onPress={() => setShowCardSheet(false)}>
+                  <Ionicons name="close" size={20} color="#333" />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.modalSubtitle}>
-                We filled your shipping info automatically. Copy the card values below and paste
-                them into the secure payment fields.
+                Copy the card values below and paste them into the secure payment fields.
               </Text>
 
               {cardFieldRows.map((row) => (
@@ -571,10 +801,85 @@ export default function ShoppingScreen() {
 
               <TouchableOpacity
                 style={styles.modalCloseButton}
-                onPress={() => setIsCardModalVisible(false)}
+                onPress={() => setShowCardSheet(false)}
                 activeOpacity={0.8}
               >
                 <Text style={styles.modalCloseText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {shippingPromptVisible && (
+          <View style={styles.shippingPromptContainer}>
+            <TouchableOpacity
+              style={styles.shippingPromptButton}
+              onPress={() => {
+                setShippingPromptVisible(false);
+                setShippingModalVisible(true);
+              }}
+            >
+              <Ionicons name="cube" size={16} color="#fff" />
+              <Text style={styles.shippingPromptText}>Ship spent items</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <Modal
+          visible={shippingModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShippingModalVisible(false);
+            setShippingPromptItems([]);
+            setShowShippingLabel(false);
+          }}
+        >
+          <View style={styles.shippingModalOverlay}>
+            <View style={styles.shippingModalCard}>
+              <Text style={styles.shippingModalTitle}>Items to ship</Text>
+              <Text style={styles.shippingModalSubtitle}>
+                Send the items you just spent so we can deliver them to the merchant.
+              </Text>
+
+              <ScrollView style={{ maxHeight: 220 }}>
+                {shippingPromptItems.map((item) => (
+                  <View key={item.item_id} style={styles.shippingItemRow}>
+                    <Ionicons name="cube-outline" size={18} color="#000" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.shippingItemLabel}>{item.label}</Text>
+                      <Text style={styles.shippingItemMeta}>
+                        {item.fraction >= 0.999
+                          ? 'Full item'
+                          : `${formatFraction(item.fraction)} used`} · ${item.amount.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.shippingLabelButton}
+                onPress={() => setShowShippingLabel((prev) => !prev)}
+              >
+                <Text style={styles.shippingLabelButtonText}>
+                  {showShippingLabel ? 'Hide shipping label' : 'View shipping label'}
+                </Text>
+              </TouchableOpacity>
+
+              {showShippingLabel && (
+                <Image source={SHIPPING_LABEL_IMAGE} style={styles.shippingLabelImage} resizeMode="contain" />
+              )}
+
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShippingModalVisible(false);
+                  setShippingPromptItems([]);
+                  setShowShippingLabel(false);
+                }}
+              >
+                <Text style={styles.modalCloseText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -730,19 +1035,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'flex-end',
+  cardSheetOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
   },
-  cardModalContainer: {
+  cardSheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 34 : 24,
-    gap: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
+  },
+  cardSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   modalTitle: {
     fontSize: 20,
@@ -802,5 +1118,74 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  shippingPromptContainer: {
+    position: 'absolute',
+    right: 16,
+    bottom: 120,
+  },
+  shippingPromptButton: {
+    backgroundColor: '#111111',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  shippingPromptText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  shippingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  shippingModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+  },
+  shippingModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  shippingModalSubtitle: {
+    color: '#555',
+    marginBottom: 16,
+  },
+  shippingItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  shippingItemLabel: {
+    fontWeight: '600',
+    color: '#111',
+  },
+  shippingItemMeta: {
+    color: '#555',
+    fontSize: 13,
+  },
+  shippingLabelButton: {
+    marginTop: 8,
+    backgroundColor: '#000',
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  shippingLabelButtonText: {
+    color: '#F0EC57',
+    fontWeight: '600',
+  },
+  shippingLabelImage: {
+    width: '100%',
+    height: 260,
+    marginTop: 16,
+    borderRadius: 12,
   },
 });
